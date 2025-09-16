@@ -1,0 +1,46 @@
+# Add Tags
+
+post
+https://services.leadconnectorhq.com/contacts/{contactId}/tags
+Add Tags
+
+Request
+Use the Access Token generated with user type as Sub-Account (OR) Private Integration Token of Sub-Account.
+
+Provide your bearer token in the Authorization header when making requests to protected resources.
+
+Example: Authorization: Bearer 123
+
+Path Parameters
+contactId
+string
+required
+Contact Id
+
+Example:
+sx6wyHhbFdRXh302LLNR
+Headers
+Authorization
+string
+required
+Access Token
+
+Example:
+Bearer 9c48df2694a849b6089f9d0d3513efe
+Version
+string
+required
+API Version
+
+Allowed value:
+2021-07-28
+Body
+
+application/json
+
+application/json
+tags
+array[string]
+required
+Example:
+["minim","velit magna"]

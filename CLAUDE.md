@@ -45,6 +45,27 @@ WEBHOOK_VERBOSE=1             # Enable verbose logging
 WEBHOOK_KEEP_EXISTING=1       # Keep existing backend running
 ```
 
+### Webhook Payload Analysis
+```bash
+# View all webhook payloads
+node webhook-payload-viewer.js list
+
+# View CloudTalk webhook payloads only
+node webhook-payload-viewer.js list cloudtalk
+
+# View specific webhook type
+node webhook-payload-viewer.js list cloudtalk call-recording-ready
+
+# View webhook statistics
+node webhook-payload-viewer.js stats
+
+# View specific payload file
+node webhook-payload-viewer.js view webhook-payloads/cloudtalk/call-ended_2024-01-15.json
+
+# Clean old webhook files (older than 30 days)
+node webhook-payload-viewer.js clean 30
+```
+
 ## Architecture Overview
 
 ### Core Express Middleware (`src/`)
@@ -161,6 +182,14 @@ const cueCardData = {
 - Roberto's number (+393513416607) is used for priority testing
 - All test calls route to this number
 - Special handling in CueCard popups for this contact
+
+### Webhook Payload Logging
+- **Automatic Payload Storage**: All webhooks automatically save payloads to `webhook-payloads/` directory
+- **Organized by Provider**: CloudTalk webhooks → `webhook-payloads/cloudtalk/`, Squadd/GHL → `webhook-payloads/squadd/`
+- **Timestamped Files**: Each webhook creates individual JSON files with timestamp
+- **Daily Aggregation**: JSONL files aggregate all webhooks of same type per day
+- **Rich Metadata**: Includes headers, IP, user-agent, and processing metadata
+- **Analysis Tools**: Use `webhook-payload-viewer.js` to browse, analyze, and clean webhook data
 
 ## Development Tips
 

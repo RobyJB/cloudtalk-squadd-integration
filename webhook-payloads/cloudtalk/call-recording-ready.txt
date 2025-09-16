@@ -1,0 +1,883 @@
+
+=== WEBHOOK RECEIVED: 2025-09-16T16:28:11.954Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "resistance-grant-ocean-true.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "249",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "3.121.47.241",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "DE",
+  "cf-ray": "9801bc4e330aaf69-MAD",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "b0c4016a-3c0f-436e-9cf5-ed98d776b4a2",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "3.121.47.241",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 3.121.47.241
+
+PAYLOAD:
+{
+  "call_id": 1002402487,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjQwMjQ4Nw%3D%3D/M2Q1NDg1OTc3NGRkNzg4YWUyYmIwY2NhNmQxZTE3ODZlZTgzMTE5N2EyMzcwNDRjODY4NmE1MjQ1YzQyZmQwNg%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T16:32:31.942Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "resistance-grant-ocean-true.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "249",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "3.121.47.241",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "DE",
+  "cf-ray": "9801c2a753433808-MAD",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "b0c4016a-3c0f-436e-9cf5-ed98d776b4a2",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "3.121.47.241",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 3.121.47.241
+
+PAYLOAD:
+{
+  "call_id": 1002409191,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjQwOTE5MQ%3D%3D/MTBhZDE3YmE1M2I3YzE4MjMxYTcwNmJiYzY0M2RjOTdiMWU5NTI3NzRiMjdmZDAyYzJjYWQ1ODQ2YWIzODI4Zg%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T16:47:21.954Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "resistance-grant-ocean-true.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "249",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "3.121.47.241",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "DE",
+  "cf-ray": "9801d86206c3e864-MAD",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "b0c4016a-3c0f-436e-9cf5-ed98d776b4a2",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "3.121.47.241",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 3.121.47.241
+
+PAYLOAD:
+{
+  "call_id": 1002432221,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjQzMjIyMQ%3D%3D/Y2E2MWEzNGY2ZTY5MzUwN2I1YWY2MDQ5NmMyNDcyZjcyNzQ1YmNjYTk1NzI1YmRhMjE5YzU4OGNlYTEwYWRkMg%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T19:15:02.163Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "resistance-grant-ocean-true.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "249",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "3.121.47.241",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "DE",
+  "cf-ray": "9802b0b26192a040-MAD",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "b0c4016a-3c0f-436e-9cf5-ed98d776b4a2",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "3.121.47.241",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 3.121.47.241
+
+PAYLOAD:
+{
+  "call_id": 1002624561,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjYyNDU2MQ%3D%3D/NWY4YzgyNmY1MDA2MTBjOGFjYjVkMDA2YTgxOTEwOTY3ZTIyZTYwNGJkMDQ2ZmZkNWE2YWNmNjNkZDk2YjllNg%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T19:23:02.134Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "dancing-str-apps-started.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "249",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "3.65.161.49",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "DE",
+  "cf-ray": "9802bc6a64fd814d-FRA",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "c175c0c5-7956-4a7c-8951-095f2b9e3eba",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "3.65.161.49",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 3.65.161.49
+
+PAYLOAD:
+{
+  "call_id": 1002634721,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjYzNDcyMQ%3D%3D/ZmJiZjQ5YmU1MWUwMDkyM2I3ODZmODJlM2NjNDI4YWYyZTNjMTFhMTA2YzI5OWJhMjJiZTAxZTQzYWQxNTI2Zg%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T20:31:11.847Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "dancing-str-apps-started.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "249",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "3.121.47.241",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "DE",
+  "cf-ray": "980320434315381c-OTP",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "c175c0c5-7956-4a7c-8951-095f2b9e3eba",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "3.121.47.241",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 3.121.47.241
+
+PAYLOAD:
+{
+  "call_id": 1002720853,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjcyMDg1Mw%3D%3D/ZDIxODgyYTI2ZDJlMjcyYjc0ZTIyMGMyZDJlYzI0ZjI2Y2I5NzJjNTBhNmEyNzU3YmMzZjJhNzkzYmI3NTQzYg%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T20:40:02.215Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "dancing-str-apps-started.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "249",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "3.121.47.241",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "DE",
+  "cf-ray": "98032d35f293902a-OTP",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "c175c0c5-7956-4a7c-8951-095f2b9e3eba",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "3.121.47.241",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 3.121.47.241
+
+PAYLOAD:
+{
+  "call_id": 1002730169,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjczMDE2OQ%3D%3D/NTVkZTdlNjUwYzBiNDE1ZDdiYzc4NzBmYjY1YzJiNDUyM2Y1MzUzNzZkM2U3NWRmMzY2ZTM0NjBjNmY4ODkyNw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:15:04.478Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "dancing-str-apps-started.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "276",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "86.123.9.88",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "RO",
+  "cf-ray": "98036089a04ce3f6-OTP",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "c175c0c5-7956-4a7c-8951-095f2b9e3eba",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "86.123.9.88",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 86.123.9.88
+
+PAYLOAD:
+{
+  "call_id": 1002730169,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjczMDE2OQ%3D%3D/NTVkZTdlNjUwYzBiNDE1ZDdiYzc4NzBmYjY1YzJiNDUyM2Y1MzUzNzZkM2U3NWRmMzY2ZTM0NjBjNmY4ODkyNw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:22:04.937Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "276"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002730169,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjczMDE2OQ%3D%3D/NTVkZTdlNjUwYzBiNDE1ZDdiYzc4NzBmYjY1YzJiNDUyM2Y1MzUzNzZkM2U3NWRmMzY2ZTM0NjBjNmY4ODkyNw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:26:44.863Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "276"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002730170,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjczMDE2OQ%3D%3D/NTVkZTdlNjUwYzBiNDE1ZDdiYzc4NzBmYjY1YzJiNDUyM2Y1MzUzNzZkM2U3NWRmMzY2ZTM0NjBjNmY4ODkyNw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:27:43.221Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "276"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002730171,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjczMDE2OQ%3D%3D/NTVkZTdlNjUwYzBiNDE1ZDdiYzc4NzBmYjY1YzJiNDUyM2Y1MzUzNzZkM2U3NWRmMzY2ZTM0NjBjNmY4ODkyNw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:28:37.266Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "276"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002730172,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjczMDE2OQ%3D%3D/NTVkZTdlNjUwYzBiNDE1ZDdiYzc4NzBmYjY1YzJiNDUyM2Y1MzUzNzZkM2U3NWRmMzY2ZTM0NjBjNmY4ODkyNw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:29:44.478Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "276"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002730173,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjczMDE2OQ%3D%3D/NTVkZTdlNjUwYzBiNDE1ZDdiYzc4NzBmYjY1YzJiNDUyM2Y1MzUzNzZkM2U3NWRmMzY2ZTM0NjBjNmY4ODkyNw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:30:28.705Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "276"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002730174,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjczMDE2OQ%3D%3D/NTVkZTdlNjUwYzBiNDE1ZDdiYzc4NzBmYjY1YzJiNDUyM2Y1MzUzNzZkM2U3NWRmMzY2ZTM0NjBjNmY4ODkyNw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:32:39.712Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "278"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002226167,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393936815798"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:33:25.352Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "258"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002226999,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393936815798"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:34:05.065Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "258"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002227111,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393936815798"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:34:35.182Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "258"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002227222,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393936815798"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:35:24.683Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "258"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002227333,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393936815798"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:46:12.592Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "258"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002227444,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393936815798"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:53:21.232Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "258"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002226167,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393936815798"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:55:51.288Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "258"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002226167,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393936815798"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T21:57:04.792Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "258"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002226168,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393936815798"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T22:03:49.782Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "user-agent": "curl/8.16.0",
+  "content-length": "278"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002226168,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393936815798"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T22:05:40.915Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "user-agent": "curl/8.16.0",
+  "content-length": "278"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002226169,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393936815798"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T22:10:20.315Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "user-agent": "curl/8.16.0",
+  "content-length": "278"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002226170,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393936815798"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T22:25:35.971Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "user-agent": "curl/8.16.0",
+  "content-length": "278"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002226171,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393936815798"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T22:28:50.141Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "278"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002226167,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393936815798"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T22:30:51.785Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "dancing-str-apps-started.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "249",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "3.78.136.153",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "DE",
+  "cf-ray": "9803cf8e351c4d8f-OTP",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "c175c0c5-7956-4a7c-8951-095f2b9e3eba",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "3.78.136.153",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 3.78.136.153
+
+PAYLOAD:
+{
+  "call_id": 1002838529,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjgzODUyOQ%3D%3D/MWJiZDgxMWY1MjlhNGMyOWQxYmVlOTBhMmFkYjIwNWRhZjRjNTViZDkzMTlmYWVhYzg5ZTMyNzUzYjA1MTE5ZQ%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T22:38:26.551Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "278"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1002999999,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393513416607"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T22:42:41.803Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "278"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1003000001,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjgzODUyOQ%3D%3D/MWJiZDgxMWY1MjlhNGMyOWQxYmVlOTBhMmFkYjIwNWRhZjRjNTViZDkzMTlmYWVhYzg5ZTMyNzUzYjA1MTE5ZQ%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": "393513416607"
+}
+
+==============================
+

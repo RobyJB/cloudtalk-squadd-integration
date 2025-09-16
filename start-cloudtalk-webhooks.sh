@@ -99,6 +99,13 @@ check_existing_backend() {
 
 # Create CloudTalk webhook server
 create_webhook_server() {
+    echo -e "${GREEN}✅ Using existing optimized webhook server${NC}"
+    # We'll use the main server instead of creating a new one
+    return 0
+}
+
+# Create temporary webhook server (old approach - not used)
+create_old_webhook_server() {
     cat > "$BACKEND_DIR/cloudtalk-webhook-server.js" << 'EOF'
 import express from 'express';
 import bodyParser from 'body-parser';
@@ -328,8 +335,8 @@ start_backend() {
     # Use PORT environment variable or default to 3000
     PORT=${PORT:-3000}
 
-    # Start server in background and capture logs to file
-    node cloudtalk-webhook-server.js > "$APP_LOG" 2>&1 &
+    # Start main server in background and capture logs to file
+    npm start > "$APP_LOG" 2>&1 &
     APP_PID=$!
 
     # Wait for server to start
@@ -409,20 +416,30 @@ display_webhook_urls() {
     echo -e "${YELLOW}🔗 WEBHOOK ENDPOINTS:${NC}"
     echo -e "Copy these URLs into your CloudTalk Workflow Automation:\n"
 
-    echo -e "${CYAN}┌──────────────────────────────────────────────────────────┐${NC}"
-    echo -e "${CYAN}│${NC} ${BOLD}CLOUDTALK WEBHOOK${NC} (Call Events):"
-    echo -e "${CYAN}│${NC} ${BLUE}$base_url/webhook/cloudtalk${NC}"
+    echo -e "${CYAN}┌─────────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${CYAN}│${NC} ${BOLD}CLOUDTALK WEBHOOKS${NC} (7 optimized endpoints):"
+    echo -e "${CYAN}│${NC} ${BLUE}$base_url/api/cloudtalk-webhooks/call-recording-ready${NC}"
+    echo -e "${CYAN}│${NC} ${BLUE}$base_url/api/cloudtalk-webhooks/transcription-ready${NC}"
+    echo -e "${CYAN}│${NC} ${BLUE}$base_url/api/cloudtalk-webhooks/new-tag${NC}"
+    echo -e "${CYAN}│${NC} ${BLUE}$base_url/api/cloudtalk-webhooks/contact-updated${NC}"
+    echo -e "${CYAN}│${NC} ${BLUE}$base_url/api/cloudtalk-webhooks/call-started${NC}"
+    echo -e "${CYAN}│${NC} ${BLUE}$base_url/api/cloudtalk-webhooks/call-ended${NC}"
+    echo -e "${CYAN}│${NC} ${BLUE}$base_url/api/cloudtalk-webhooks/new-note${NC}"
     echo -e "${CYAN}│${NC}"
-    echo -e "${CYAN}│${NC} ${BOLD}TEST ENDPOINT${NC} (Health Check):"
-    echo -e "${CYAN}│${NC} ${BLUE}$base_url/webhook/test${NC}"
+    echo -e "${CYAN}│${NC} ${BOLD}GHL WEBHOOKS${NC} (5 GoHighLevel sync endpoints):"
+    echo -e "${CYAN}│${NC} ${BLUE}$base_url/api/ghl-webhooks/new-contact${NC}"
+    echo -e "${CYAN}│${NC} ${BLUE}$base_url/api/ghl-webhooks/new-tag${NC}"
+    echo -e "${CYAN}│${NC} ${BLUE}$base_url/api/ghl-webhooks/new-note${NC}"
+    echo -e "${CYAN}│${NC} ${BLUE}$base_url/api/ghl-webhooks/pipeline-stage-changed${NC}"
+    echo -e "${CYAN}│${NC} ${BLUE}$base_url/api/ghl-webhooks/opportunity-status-changed${NC}"
     echo -e "${CYAN}│${NC}"
     echo -e "${CYAN}│${NC} ${BOLD}HEALTH CHECK${NC}:"
     echo -e "${CYAN}│${NC} ${BLUE}$base_url/health${NC}"
     echo -e "${CYAN}│${NC}"
-    echo -e "${CYAN}└──────────────────────────────────────────────────────────┘${NC}\n"
+    echo -e "${CYAN}└─────────────────────────────────────────────────────────────┘${NC}\n"
 
-    # Copy URL to clipboard (macOS/Linux compatible)
-    local webhook_url="$base_url/webhook/cloudtalk"
+    # Copy main webhook URL to clipboard (macOS/Linux compatible)
+    local webhook_url="$base_url/api/cloudtalk-webhooks/call-ended"
 
     if command -v pbcopy &> /dev/null; then
         echo "$webhook_url" | pbcopy

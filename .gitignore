@@ -1,2 +1,7 @@
 node_modules
 logs/*.log
+.env
+.env.local
+.env.production
+.env.staging
+*.key

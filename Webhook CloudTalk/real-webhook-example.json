@@ -1,0 +1,47 @@
+{
+  "webhook_type": "new-note",
+  "timestamp": "2025-09-16T14:44:01.899Z",
+  "source": "CloudTalk Production",
+  "endpoint_called": "/api/cloudtalk-webhooks/new-note",
+  "tunnel_url": "https://yale-formation-continued-band.trycloudflare.com",
+  
+  "headers": {
+    "host": "yale-formation-continued-band.trycloudflare.com",
+    "user-agent": "cloudtalk-workflow-automation",
+    "content-length": "249",
+    "accept": "application/json, text/plain, */*",
+    "accept-encoding": "gzip",
+    "cdn-loop": "cloudflare; loops=1; subreqs=1",
+    "cf-connecting-ip": "3.78.136.153",
+    "cf-ew-via": "15",
+    "cf-ipcountry": "DE",
+    "cf-ray": "980123b803279972-OTP",
+    "cf-visitor": "{\"scheme\":\"https\"}",
+    "cf-warp-tag-id": "d476e3c4-5e39-4fce-8947-84cd24d21602",
+    "cf-worker": "trycloudflare.com",
+    "connection": "keep-alive",
+    "content-type": "application/json",
+    "x-forwarded-for": "3.78.136.153",
+    "x-forwarded-proto": "https"
+  },
+  
+  "payload": {
+    "call_id": 1002226167,
+    "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav",
+    "internal_number": 40312296109,
+    "external_number": 393936815798
+  },
+  
+  "notes": {
+    "analysis": "This appears to be a call-ended webhook with recording information, not a typical new-note webhook",
+    "recording_url_provided": true,
+    "phone_numbers": {
+      "internal": "40312296109 (CloudTalk internal number)",
+      "external": "393936815798 (Italian mobile number)"
+    },
+    "recommended_endpoint": "/api/cloudtalk-webhooks/call-ended",
+    "status": "Successfully processed when routed to call-ended endpoint"
+  },
+  
+  "curl_command": "curl -X POST http://localhost:3000/api/cloudtalk-webhooks/call-ended -H 'Content-Type: application/json' -H 'User-Agent: cloudtalk-workflow-automation' -d '{\"Call_id\": 1002226167, \"recording_url\": \"https://my.cloudtalk.io/pub/r/MTAwMjIyNjE2Nw%3D%3D/NWYxZDY3MWEzOGY0ZTg3OTQ2ZjRmYzlmZmRmMmQxY2Q2ODU5N2U5ODQyZWE1MTJjNTZlYjVkMmM2Yjk2YjAwMw%3D%3D.wav\", \"internal_number\": 40312296109, \"external_number\": 393936815798, \"Call_status\": \"completed\", \"Contact_phone\": \"+393936815798\"}'"
+}

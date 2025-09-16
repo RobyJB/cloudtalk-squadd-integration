@@ -1,0 +1,74 @@
+
+=== WEBHOOK RECEIVED: 2025-09-16T16:32:36.074Z ===
+Provider: cloudtalk
+Webhook Type: transcription-ready
+Headers: {
+  "host": "resistance-grant-ocean-true.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "237",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "3.65.161.49",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "DE",
+  "cf-ray": "9801c2c126a236dc-MAD",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "b0c4016a-3c0f-436e-9cf5-ed98d776b4a2",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "3.65.161.49",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 3.65.161.49
+
+PAYLOAD:
+{
+  "transcript": "[object Object]",
+  "call_id": 1002409191,
+  "talking_time": 22,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjQwOTE5MQ%3D%3D/MTBhZDE3YmE1M2I3YzE4MjMxYTcwNmJiYzY0M2RjOTdiMWU5NTI3NzRiMjdmZDAyYzJjYWQ1ODQ2YWIzODI4Zg%3D%3D.wav"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-16T16:47:26.718Z ===
+Provider: cloudtalk
+Webhook Type: transcription-ready
+Headers: {
+  "host": "resistance-grant-ocean-true.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "237",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "3.78.136.153",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "DE",
+  "cf-ray": "9801d87fd2db71b3-MAD",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "b0c4016a-3c0f-436e-9cf5-ed98d776b4a2",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "3.78.136.153",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 3.78.136.153
+
+PAYLOAD:
+{
+  "transcript": "[object Object]",
+  "call_id": 1002432221,
+  "talking_time": 23,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMjQzMjIyMQ%3D%3D/Y2E2MWEzNGY2ZTY5MzUwN2I1YWY2MDQ5NmMyNDcyZjcyNzQ1YmNjYTk1NzI1YmRhMjE5YzU4OGNlYTEwYWRkMg%3D%3D.wav"
+}
+
+==============================
+

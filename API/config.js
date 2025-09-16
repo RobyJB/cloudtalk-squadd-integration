@@ -1,10 +1,20 @@
 import dotenv from 'dotenv';
-dotenv.config({ path: '../.env' });
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+// Get current directory and resolve .env path
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// From API/config.js, go up one level to reach project root
+const envPath = path.resolve(__dirname, '../.env');
+
+dotenv.config({ path: envPath });
 
 // CloudTalk API Configuration
 const CLOUDTALK_CONFIG = {
   baseURL: 'https://my.cloudtalk.io/api',
-  apiKey: process.env.CLOUDTALK_API_KEY,
+  apiKeyId: process.env.CLOUDTALK_API_KEY_ID,
+  apiSecret: process.env.CLOUDTALK_API_SECRET,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
@@ -13,12 +23,12 @@ const CLOUDTALK_CONFIG = {
 
 // Helper function to create Basic Auth header
 function getAuthHeader() {
-  if (!CLOUDTALK_CONFIG.apiKey) {
-    throw new Error('CLOUDTALK_API_KEY not found in environment variables');
+  if (!CLOUDTALK_CONFIG.apiKeyId || !CLOUDTALK_CONFIG.apiSecret) {
+    throw new Error('CLOUDTALK_API_KEY_ID and CLOUDTALK_API_SECRET not found in environment variables');
   }
   
-  // CloudTalk uses API Key as username with empty password for Basic Auth
-  const credentials = Buffer.from(`${CLOUDTALK_CONFIG.apiKey}:`).toString('base64');
+  // CloudTalk uses API Key ID as username and API Secret as password for Basic Auth
+  const credentials = Buffer.from(`${CLOUDTALK_CONFIG.apiKeyId}:${CLOUDTALK_CONFIG.apiSecret}`).toString('base64');
   return `Basic ${credentials}`;
 }
 

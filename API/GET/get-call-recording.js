@@ -1,4 +1,5 @@
 import { makeCloudTalkRequest } from '../config.js';
+import { processSingleCallRecording } from '../recording-integration.js';
 
 /**
  * CloudTalk Call Recording GET API
@@ -18,11 +19,14 @@ import { makeCloudTalkRequest } from '../config.js';
  * - 410: Recording expired
  */
 
-async function getCallRecording(callId) {
+async function getCallRecording(callId, params = {}) {
   console.log('🎵 CloudTalk - Get Call Recording');
   console.log('=' .repeat(40));
 
   if (!callId) throw new Error('callId is required');
+
+  // Check if auto-save to database is enabled (disabled by default)
+  const autoSaveToDatabase = params.auto_save_to_database === true;
 
   const endpoint = `/calls/recording/${callId}.json`;
 
@@ -35,13 +39,37 @@ async function getCallRecording(callId) {
     console.log(`\n🎵 Recording for call ${callId}:`);
     
     // Check if response is binary (WAV) or JSON (error)
-    if (response.data && typeof response.data === 'object') {
+    if (response.contentType && response.contentType.includes('audio')) {
+      // Binary WAV data
+      console.log('   🎵 Binary WAV data received');
+      console.log(`   📊 Data size: ${response.data.byteLength} bytes`);
+      console.log(`   🎼 Content-Type: ${response.contentType}`);
+    } else if (response.data && typeof response.data === 'object') {
       // JSON error response
       console.log('   📄 JSON Response:', JSON.stringify(response.data, null, 2));
     } else {
-      // Binary WAV data
-      console.log('   🎵 Binary WAV data received');
-      console.log(`   📊 Data size: ${response.data ? response.data.length : 0} bytes`);
+      console.log('   📄 Unknown response type received');
+    }
+
+    // Auto-save to database if enabled and we have binary audio data
+    if (autoSaveToDatabase && response.contentType && response.contentType.includes('audio')) {
+      console.log('\n💾 Auto-saving recording to database...');
+      try {
+        const recordingResult = await processSingleCallRecording(callId, params.metadata || {});
+
+        if (recordingResult.success) {
+          if (recordingResult.already_exists) {
+            console.log('⏭️  Recording already exists in database');
+          } else {
+            console.log(`✅ Recording saved to database (${recordingResult.data?.file_size || 'unknown'} bytes)`);
+          }
+        } else {
+          console.log(`⚠️  Failed to save recording: ${recordingResult.error}`);
+        }
+      } catch (error) {
+        console.error('⚠️  Auto-save to database failed:', error.message);
+        // Don't throw - let the main function continue
+      }
     }
 
     return response.data;

@@ -12,6 +12,15 @@ import { getBlacklist } from './get-blacklist.js';
 import { getCalls } from './get-calls.js';
 import { getCallDetails } from './get-call-details.js';
 import { getCallRecording } from './get-call-recording.js';
+import { getGroupStatistics } from './get-group-statistics.js';
+import { getTags } from './get-tags.js';
+import { getAICallSummary } from './get-ai-call-summary.js';
+import { getAIOverallSentiment } from './get-ai-overall-sentiment.js';
+import { getAITalkListenRatio } from './get-ai-talk-listen-ratio.js';
+import { getAITopics } from './get-ai-topics.js';
+import { getAITranscription } from './get-ai-transcription.js';
+import { getAISmartNotes } from './get-ai-smart-notes.js';
+import { getAICallDetailsLink } from './get-ai-call-details-link.js';
 
 /**
  * Master test runner for all CloudTalk GET endpoints
@@ -38,8 +47,45 @@ async function runAllGetTests() {
     { name: 'Blacklist', test: () => getBlacklist({ limit: 3 }) },
     { name: 'Calls', test: () => getCalls({ limit: 3 }) },
     // Note: These may fail if IDs don't exist, but that's expected
-    { name: 'Call Details', test: () => getCallDetails(12345) },
-    { name: 'Call Recording', test: () => getCallRecording(12345) }
+    { name: 'Call Details', test: async () => {
+      // DEPENDENCY: Get real call ID first
+      const callsResponse = await getCalls({ limit: 1 });
+      if (callsResponse?.responseData?.data?.length > 0) {
+        const firstCall = callsResponse.responseData.data[0];
+        const realCallId = firstCall.Cdr?.id || firstCall.Call?.id || firstCall.CallSummary?.id || firstCall.id;
+        if (realCallId) {
+          console.log(`   🔗 Using real call ID: ${realCallId}`);
+          return await getCallDetails(realCallId);
+        }
+      }
+      console.log('   ⚠️  No real call ID found, using dummy ID');
+      return await getCallDetails(12345);
+    }},
+    { name: 'Call Recording', test: async () => {
+      // DEPENDENCY: Get real call ID first 
+      const callsResponse = await getCalls({ limit: 1 });
+      if (callsResponse?.responseData?.data?.length > 0) {
+        const firstCall = callsResponse.responseData.data[0];
+        const realCallId = firstCall.Cdr?.id || firstCall.Call?.id || firstCall.CallSummary?.id || firstCall.id;
+        if (realCallId) {
+          console.log(`   🔗 Using real call ID: ${realCallId}`);
+          return await getCallRecording(realCallId);
+        }
+      }
+      console.log('   ⚠️  No real call ID found, using dummy ID');
+      return await getCallRecording(12345);
+    }},
+    // New endpoints
+    { name: 'Group Statistics', test: () => getGroupStatistics() },
+    { name: 'Tags', test: () => getTags({ limit: 5 }) },
+    // AI Endpoints (may not be available for all accounts)
+    { name: 'AI Call Summary', test: () => getAICallSummary(1001632149) },
+    { name: 'AI Overall Sentiment', test: () => getAIOverallSentiment(1001632149) },
+    { name: 'AI Talk-Listen Ratio', test: () => getAITalkListenRatio(1001632149) },
+    { name: 'AI Topics', test: () => getAITopics(1001632149, { limit: 5 }) },
+    { name: 'AI Transcription', test: () => getAITranscription(1001632149, { limit: 5 }) },
+    { name: 'AI Smart Notes', test: () => getAISmartNotes(1001632149) },
+    { name: 'AI Call Details Link', test: () => getAICallDetailsLink(1001632149) }
   ];
 
   let passedTests = 0;

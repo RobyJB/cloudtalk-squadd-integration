@@ -1,4 +1,5 @@
 import { makeCloudTalkRequest } from '../config.js';
+import { processCallRecordings } from '../recording-integration.js';
 
 /**
  * CloudTalk Calls GET API
@@ -69,6 +70,9 @@ async function getCalls(params = {}) {
   console.log('📞 CloudTalk - Get Calls');
   console.log('=' .repeat(40));
 
+  // Check if auto-recording download is enabled (disabled by default)
+  const autoDownloadRecordings = params.auto_download_recordings === true;
+
   // Build query string
   const queryParams = new URLSearchParams();
   if (params.public_internal) queryParams.append('public_internal', params.public_internal);
@@ -99,7 +103,7 @@ async function getCalls(params = {}) {
       if (data.data && data.data.length > 0) {
         console.log('\n📞 Recent Calls:');
         data.data.forEach((item, index) => {
-          const call = item.CallSummary || item.Call || item; // Handle different response structures
+          const call = item.Cdr || item.CallSummary || item.Call || item; // CloudTalk uses Cdr structure
           const contact = item.Contact;
           const agent = item.Agent;
           
@@ -110,9 +114,8 @@ async function getCalls(params = {}) {
           
           console.log(`   ${index + 1}. Call ID: ${call.id}`);
           console.log(`      📱 ${call.public_external} → ${call.public_internal}`);
-          console.log(`      📊 Type: ${call.type} | Status: ${call.status}`);
-          console.log(`      ⏱️  Duration: ${Math.floor(call.duration / 60)}:${(call.duration % 60).toString().padStart(2, '0')}`);
-          console.log(`      💬 Talk Time: ${Math.floor(call.talk_time / 60)}:${(call.talk_time % 60).toString().padStart(2, '0')}`);
+          console.log(`      📊 Type: ${call.type} | Duration: ${Math.floor(call.billsec / 60)}:${(call.billsec % 60).toString().padStart(2, '0')}`);
+          console.log(`      💬 Talk Time: ${Math.floor(call.talking_time / 60)}:${(call.talking_time % 60).toString().padStart(2, '0')}`);
           if (contact) {
             console.log(`      👤 Contact: ${contact.name}${contact.company ? ` (${contact.company})` : ''}`);
           }
@@ -122,11 +125,42 @@ async function getCalls(params = {}) {
           if (item.Tags && item.Tags.length > 0) {
             console.log(`      🏷️  Tags: ${item.Tags.map(t => t.name).join(', ')}`);
           }
-          console.log(`      📅 Date: ${call.date}`);
+          console.log(`      📅 Started: ${call.started_at}`);
+          if (call.recorded) console.log(`      🎤 Recorded: Yes`);
+          console.log(`      ⏱️  Wait time: ${call.waiting_time}s`);
         });
       }
     }
-    
+
+    // Auto-download recordings if enabled and calls have recordings
+    if (autoDownloadRecordings && response.data?.responseData?.data) {
+      const calls = response.data.responseData.data;
+      const callsWithRecordings = calls.filter(call => {
+        const callData = call.Cdr || call.CallSummary || call.Call || call;
+        return callData?.recorded === true;
+      });
+
+      if (callsWithRecordings.length > 0) {
+        console.log(`\n🎵 Auto-downloading ${callsWithRecordings.length} recordings...`);
+        try {
+          const recordingStats = await processCallRecordings(callsWithRecordings, { verbose: false });
+
+          if (recordingStats.downloaded > 0) {
+            console.log(`✅ Downloaded ${recordingStats.downloaded} new recordings`);
+          }
+          if (recordingStats.skipped > 0) {
+            console.log(`⏭️  Skipped ${recordingStats.skipped} existing recordings`);
+          }
+          if (recordingStats.errors > 0) {
+            console.log(`❌ Failed to download ${recordingStats.errors} recordings`);
+          }
+        } catch (error) {
+          console.error('⚠️  Recording auto-download failed:', error.message);
+          // Don't throw - let the main function continue
+        }
+      }
+    }
+
     return response.data;
 
   } catch (error) {

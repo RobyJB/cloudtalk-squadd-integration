@@ -74,56 +74,57 @@ async function addTagToGHLContact(contactId, tagName) {
 }
 
 /**
- * 1. CloudTalk Call Started Webhook
- * Triggered when a call starts in CloudTalk
+ * 1. CloudTalk New Tag Webhook
+ * Triggered when a new tag is created or assigned in CloudTalk
  */
-router.post('/call-started', async (req, res) => {
+router.post('/new-tag', async (req, res) => {
     try {
-        logCloudTalkWebhook('call-started', req.body, req);
+        logCloudTalkWebhook('new-tag', req.body, req);
         
-        const callData = extractCallData(req.body);
+        const tagName = req.body.tag_name || req.body.Tag_name || req.body.name;
+        const contactId = req.body.contact_id || req.body.Contact_id;
+        const contactName = req.body.contact_name || req.body.Contact_name;
+        const contactPhone = req.body.contact_phone || req.body.Contact_phone;
+        const tagId = req.body.tag_id || req.body.Tag_id || req.body.id;
         
-        if (!callData.id || !callData.uuid) {
+        if (!tagName) {
             return res.status(400).json({
                 success: false,
-                error: 'Missing call ID or UUID in webhook payload'
+                error: 'Missing tag name in webhook payload'
             });
         }
 
-        console.log(`📞 Processing call started: ${callData.id} (UUID: ${callData.uuid})`);
-        console.log(`👤 Agent: ${callData.agentName} (${callData.agentId})`);
-        console.log(`📱 Contact: ${callData.contactName} (${callData.contactPhone})`);
+        console.log(`🏷️ Processing new tag: "${tagName}"`);
+        if (contactId && contactName) {
+            console.log(`👤 Associated with contact: ${contactName} (CT ID: ${contactId})`);
+        }
 
-        // Find or create GHL contact if phone number is available
+        // Find or create GHL contact if contact info is available
         let ghlContact = null;
-        if (callData.contactPhone) {
-            ghlContact = await findOrCreateGHLContact(
-                callData.contactPhone, 
-                callData.contactName || 'Unknown Contact'
-            );
+        if (contactPhone && contactName) {
+            ghlContact = await findOrCreateGHLContact(contactPhone, contactName);
             
-            // Add note about call start
-            const callNote = `[CloudTalk] Call started with ${callData.contactName || callData.contactPhone} - ` +
-                `Agent: ${callData.agentName}, Direction: ${callData.direction}, ` +
-                `Call ID: ${callData.id} - ${new Date().toISOString()}`;
-                
-            await addNoteToGHLContact(ghlContact.id, callNote);
+            // Add tag to GHL contact
+            await addTagToGHLContact(ghlContact.id, `CT-${tagName}`);
             
-            // Add tag for call activity
-            await addTagToGHLContact(ghlContact.id, 'CloudTalk-CallActive');
+            // Add note about tag creation
+            const tagNote = `[CloudTalk] New tag "${tagName}" created/assigned - ` +
+                `CloudTalk Contact ID: ${contactId} - ${new Date().toISOString()}`;
+            await addNoteToGHLContact(ghlContact.id, tagNote);
         }
 
         res.json({
             success: true,
-            message: 'Call started event processed',
-            call_id: callData.id,
-            call_uuid: callData.uuid,
+            message: 'New tag processed and synced to GHL',
+            tag_name: tagName,
+            tag_id: tagId,
+            cloudtalk_contact_id: contactId,
             ghl_contact: ghlContact,
             timestamp: new Date().toISOString()
         });
 
     } catch (error) {
-        console.error(`❌ Error processing call started webhook:`, error.message);
+        console.error(`❌ Error processing new tag webhook:`, error.message);
         res.status(500).json({
             success: false,
             error: error.message,
@@ -133,8 +134,78 @@ router.post('/call-started', async (req, res) => {
 });
 
 /**
- * 2. CloudTalk Call Ended Webhook
- * Triggered when a call ends in CloudTalk
+ * 2. CloudTalk Contact Update Webhook
+ * Triggered when a contact's custom fields are updated in CloudTalk
+ */
+router.post('/contact-updated', async (req, res) => {
+    try {
+        logCloudTalkWebhook('contact-updated', req.body, req);
+        
+        const contactId = req.body.contact_id || req.body.Contact_id || req.body.id;
+        const contactName = req.body.contact_name || req.body.Contact_name || req.body.name;
+        const contactPhone = req.body.contact_phone || req.body.Contact_phone || req.body.phone;
+        const contactEmail = req.body.contact_email || req.body.Contact_email || req.body.email;
+        const updatedFields = req.body.updated_fields || req.body.custom_fields || {};
+        const changeType = req.body.change_type || 'custom_field_update';
+        
+        if (!contactId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing contact ID in webhook payload'
+            });
+        }
+
+        console.log(`👤 Processing contact update: ${contactName} (CT ID: ${contactId})`);
+        console.log(`🔄 Change type: ${changeType}`);
+        console.log(`📋 Updated fields:`, Object.keys(updatedFields));
+
+        // Find or create GHL contact
+        let ghlContact = null;
+        if (contactPhone) {
+            ghlContact = await findOrCreateGHLContact(contactPhone, contactName || 'CloudTalk Contact');
+            
+            // Create note about the update
+            const updatedFieldsList = Object.entries(updatedFields)
+                .map(([key, value]) => `${key}: ${value}`)
+                .join(', ');
+                
+            const updateNote = `[CloudTalk] Contact updated - ` +
+                `${updatedFieldsList ? `Fields: ${updatedFieldsList}` : 'Custom fields updated'}` +
+                `${contactEmail ? `, Email: ${contactEmail}` : ''} - ` +
+                `CloudTalk ID: ${contactId} - ${new Date().toISOString()}`;
+                
+            await addNoteToGHLContact(ghlContact.id, updateNote);
+            
+            // Add tag for updated contact
+            await addTagToGHLContact(ghlContact.id, 'CT-ContactUpdated');
+            
+            // TODO: Update GHL custom fields with CloudTalk data
+            // This would sync the actual field values to GoHighLevel
+        }
+
+        res.json({
+            success: true,
+            message: 'Contact update processed and synced to GHL',
+            cloudtalk_contact_id: contactId,
+            contact_name: contactName,
+            updated_fields: Object.keys(updatedFields),
+            ghl_contact: ghlContact,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error(`❌ Error processing contact update webhook:`, error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+/**
+ * 3. CloudTalk Call Ended Webhook
+ * Triggered when a call ends in CloudTalk - comprehensive call tracking
  */
 router.post('/call-ended', async (req, res) => {
     try {
@@ -151,6 +222,7 @@ router.post('/call-ended', async (req, res) => {
 
         console.log(`📞 Processing call ended: ${callData.id}`);
         console.log(`⏱️ Duration: ${callData.duration}s, Status: ${callData.status}`);
+        console.log(`👤 Agent: ${callData.agentName}, Direction: ${callData.direction}`);
         console.log(`📼 Recording: ${callData.recording ? 'Available' : 'Not available'}`);
 
         // Find or create GHL contact
@@ -161,30 +233,43 @@ router.post('/call-ended', async (req, res) => {
                 callData.contactName || 'Unknown Contact'
             );
             
-            // Add detailed note about call completion
-            const callNote = `[CloudTalk] Call completed with ${callData.contactName || callData.contactPhone} - ` +
+            // Create comprehensive call summary note
+            const callNote = `[CloudTalk] Call completed - ` +
+                `Contact: ${callData.contactName || callData.contactPhone}, ` +
                 `Duration: ${callData.duration}s, Status: ${callData.status}, ` +
                 `Agent: ${callData.agentName}, Direction: ${callData.direction}` +
-                `${callData.recording ? ', Recording: Available' : ', Recording: Not available'} - ` +
+                `${callData.recording ? ', Recording: Available' : ', Recording: Not available'}` +
+                `${callData.campaignName ? `, Campaign: ${callData.campaignName}` : ''} - ` +
                 `Call ID: ${callData.id} - ${new Date().toISOString()}`;
                 
             await addNoteToGHLContact(ghlContact.id, callNote);
             
-            // Remove active call tag and add completion tag
-            await addTagToGHLContact(ghlContact.id, 'CloudTalk-CallCompleted');
+            // Add call completion tags
+            await addTagToGHLContact(ghlContact.id, 'CT-CallCompleted');
             
-            // Add specific tag based on call outcome
+            // Add direction-specific tag
+            if (callData.direction) {
+                await addTagToGHLContact(ghlContact.id, `CT-${callData.direction.toUpperCase()}`);
+            }
+            
+            // Add outcome-specific tag if available
             if (callData.status) {
-                await addTagToGHLContact(ghlContact.id, `CloudTalk-${callData.status}`);
+                await addTagToGHLContact(ghlContact.id, `CT-${callData.status.toUpperCase()}`);
+            }
+            
+            // Add recording tag if available
+            if (callData.recording) {
+                await addTagToGHLContact(ghlContact.id, 'CT-RecordingAvailable');
             }
         }
 
         res.json({
             success: true,
-            message: 'Call ended event processed',
+            message: 'Call ended processed and synced to GHL',
             call_id: callData.id,
             duration: callData.duration,
             status: callData.status,
+            direction: callData.direction,
             recording_available: !!callData.recording,
             ghl_contact: ghlContact,
             timestamp: new Date().toISOString()
@@ -201,163 +286,71 @@ router.post('/call-ended', async (req, res) => {
 });
 
 /**
- * 3. CloudTalk Call Recording Available Webhook
- * Triggered when call recording becomes available
+ * 4. CloudTalk New Note Webhook
+ * Triggered when a new note is added to a contact in CloudTalk
  */
-router.post('/recording-available', async (req, res) => {
+router.post('/new-note', async (req, res) => {
     try {
-        logCloudTalkWebhook('recording-available', req.body, req);
+        logCloudTalkWebhook('new-note', req.body, req);
         
-        const callData = extractCallData(req.body);
-        const recordingUrl = req.body.recording_url || req.body.Recording_url;
+        const contactId = req.body.contact_id || req.body.Contact_id;
+        const contactName = req.body.contact_name || req.body.Contact_name;
+        const contactPhone = req.body.contact_phone || req.body.Contact_phone;
+        const noteContent = req.body.note_content || req.body.note || req.body.content;
+        const noteId = req.body.note_id || req.body.Note_id || req.body.id;
+        const agentName = req.body.agent_name || req.body.Agent_name;
+        const agentId = req.body.agent_id || req.body.Agent_id;
         
-        if (!callData.id) {
+        if (!noteContent) {
             return res.status(400).json({
                 success: false,
-                error: 'Missing call ID in webhook payload'
+                error: 'Missing note content in webhook payload'
             });
         }
 
-        console.log(`📼 Processing recording available for call: ${callData.id}`);
-        console.log(`🔗 Recording URL: ${recordingUrl ? 'Available' : 'Not provided'}`);
+        console.log(`📝 Processing new note: CloudTalk Note ID ${noteId}`);
+        console.log(`👤 For contact: ${contactName} (CT ID: ${contactId})`);
+        console.log(`📝 Content preview: ${noteContent.substring(0, 100)}${noteContent.length > 100 ? '...' : ''}`);
+        if (agentName) {
+            console.log(`👤 Added by agent: ${agentName} (${agentId})`);
+        }
 
         // Find or create GHL contact
         let ghlContact = null;
-        if (callData.contactPhone) {
-            ghlContact = await findOrCreateGHLContact(
-                callData.contactPhone, 
-                callData.contactName || 'Unknown Contact'
-            );
+        if (contactPhone && contactName) {
+            ghlContact = await findOrCreateGHLContact(contactPhone, contactName);
             
-            // Add note about recording availability
-            const recordingNote = `[CloudTalk] Call recording now available - ` +
-                `Call with ${callData.contactName || callData.contactPhone}, ` +
-                `Agent: ${callData.agentName}, Duration: ${callData.duration}s` +
-                `${recordingUrl ? `, URL: ${recordingUrl}` : ''} - ` +
-                `Call ID: ${callData.id} - ${new Date().toISOString()}`;
+            // Sync note to GHL with CloudTalk context
+            const ghlNoteContent = `[CloudTalk Note] ${noteContent}` +
+                `${agentName ? ` - Added by: ${agentName}` : ''}` +
+                ` - CloudTalk Contact ID: ${contactId}` +
+                `${noteId ? `, Note ID: ${noteId}` : ''} - ${new Date().toISOString()}`;
                 
-            await addNoteToGHLContact(ghlContact.id, recordingNote);
+            await addNoteToGHLContact(ghlContact.id, ghlNoteContent);
             
-            // Add recording tag
-            await addTagToGHLContact(ghlContact.id, 'CloudTalk-RecordingAvailable');
+            // Add tag for note activity
+            await addTagToGHLContact(ghlContact.id, 'CT-NoteAdded');
+            
+            // Add agent tag if available
+            if (agentName) {
+                await addTagToGHLContact(ghlContact.id, `CT-Agent-${agentName.replace(/\s+/g, '')}`);
+            }
         }
 
         res.json({
             success: true,
-            message: 'Recording available event processed',
-            call_id: callData.id,
-            recording_url: recordingUrl,
-            ghl_contact: ghlContact,
-            timestamp: new Date().toISOString()
-        });
-
-    } catch (error) {
-        console.error(`❌ Error processing recording available webhook:`, error.message);
-        res.status(500).json({
-            success: false,
-            error: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-});
-
-/**
- * 4. CloudTalk Agent Status Change Webhook
- * Triggered when an agent's status changes (online, offline, busy, etc.)
- */
-router.post('/agent-status-change', async (req, res) => {
-    try {
-        logCloudTalkWebhook('agent-status-change', req.body, req);
-        
-        const agentId = req.body.Agent_id || req.body.agent_id;
-        const agentName = req.body.Agent_name || req.body.agent_name || req.body.name;
-        const newStatus = req.body.status || req.body.new_status;
-        const previousStatus = req.body.previous_status || req.body.old_status;
-        
-        if (!agentId || !newStatus) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing agent ID or status in webhook payload'
-            });
-        }
-
-        console.log(`👤 Processing agent status change: ${agentName} (${agentId})`);
-        console.log(`🔄 Status: ${newStatus}${previousStatus ? ` (from: ${previousStatus})` : ''}`);
-
-        // TODO: Implement GoHighLevel integration for agent status updates
-        // This might involve updating a custom field or adding a note to relevant contacts
-        
-        res.json({
-            success: true,
-            message: 'Agent status change processed',
-            agent_id: agentId,
-            agent_name: agentName,
-            new_status: newStatus,
-            previous_status: previousStatus,
-            timestamp: new Date().toISOString()
-        });
-
-    } catch (error) {
-        console.error(`❌ Error processing agent status change webhook:`, error.message);
-        res.status(500).json({
-            success: false,
-            error: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-});
-
-/**
- * 5. CloudTalk Contact Created Webhook
- * Triggered when a new contact is created in CloudTalk
- */
-router.post('/contact-created', async (req, res) => {
-    try {
-        logCloudTalkWebhook('contact-created', req.body, req);
-        
-        const contactId = req.body.Contact_id || req.body.contact_id || req.body.id;
-        const contactName = req.body.Contact_name || req.body.name;
-        const contactPhone = req.body.Contact_phone || req.body.phone;
-        const contactEmail = req.body.Contact_email || req.body.email;
-        const source = req.body.source || 'CloudTalk';
-        
-        if (!contactId) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing contact ID in webhook payload'
-            });
-        }
-
-        console.log(`👤 Processing contact created: ${contactName} (ID: ${contactId})`);
-        console.log(`📱 Phone: ${contactPhone}, 📧 Email: ${contactEmail}`);
-
-        // Create or update contact in GoHighLevel
-        let ghlContact = null;
-        if (contactPhone) {
-            ghlContact = await findOrCreateGHLContact(contactPhone, contactName || 'CloudTalk Contact');
-            
-            // Add note about CloudTalk contact creation
-            const contactNote = `[CloudTalk] Contact created in CloudTalk - ` +
-                `Name: ${contactName}, Phone: ${contactPhone}` +
-                `${contactEmail ? `, Email: ${contactEmail}` : ''}, ` +
-                `Source: ${source}, CloudTalk ID: ${contactId} - ${new Date().toISOString()}`;
-                
-            await addNoteToGHLContact(ghlContact.id, contactNote);
-            
-            // Add CloudTalk origin tag
-            await addTagToGHLContact(ghlContact.id, 'CloudTalk-Contact');
-        }
-
-        res.json({
-            success: true,
-            message: 'Contact created event processed',
+            message: 'New note processed and synced to GHL',
+            note_id: noteId,
             cloudtalk_contact_id: contactId,
+            contact_name: contactName,
+            note_preview: noteContent.substring(0, 100),
+            agent_name: agentName,
             ghl_contact: ghlContact,
             timestamp: new Date().toISOString()
         });
 
     } catch (error) {
-        console.error(`❌ Error processing contact created webhook:`, error.message);
+        console.error(`❌ Error processing new note webhook:`, error.message);
         res.status(500).json({
             success: false,
             error: error.message,
@@ -365,56 +358,6 @@ router.post('/contact-created', async (req, res) => {
         });
     }
 });
-
-/**
- * 6. CloudTalk Campaign Status Change Webhook
- * Triggered when a campaign status changes (started, stopped, paused, etc.)
- */
-router.post('/campaign-status-change', async (req, res) => {
-    try {
-        logCloudTalkWebhook('campaign-status-change', req.body, req);
-        
-        const campaignId = req.body.Campaign_id || req.body.campaign_id;
-        const campaignName = req.body.Campaign_name || req.body.campaign_name || req.body.name;
-        const newStatus = req.body.status || req.body.new_status;
-        const previousStatus = req.body.previous_status || req.body.old_status;
-        const contactsAffected = req.body.contacts_affected || req.body.contact_count;
-        
-        if (!campaignId || !newStatus) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing campaign ID or status in webhook payload'
-            });
-        }
-
-        console.log(`📈 Processing campaign status change: ${campaignName} (${campaignId})`);
-        console.log(`🔄 Status: ${newStatus}${previousStatus ? ` (from: ${previousStatus})` : ''}`);
-        console.log(`👥 Contacts affected: ${contactsAffected || 'Unknown'}`);
-
-        // TODO: Implement GoHighLevel integration for campaign status updates
-        // This might involve updating pipeline stages or adding notes to campaign contacts
-        
-        res.json({
-            success: true,
-            message: 'Campaign status change processed',
-            campaign_id: campaignId,
-            campaign_name: campaignName,
-            new_status: newStatus,
-            previous_status: previousStatus,
-            contacts_affected: contactsAffected,
-            timestamp: new Date().toISOString()
-        });
-
-    } catch (error) {
-        console.error(`❌ Error processing campaign status change webhook:`, error.message);
-        res.status(500).json({
-            success: false,
-            error: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-});
-
 // Generic CloudTalk webhook endpoint (fallback)
 router.post('/generic', async (req, res) => {
     try {
@@ -445,15 +388,19 @@ router.post('/generic', async (req, res) => {
 // Test endpoint for CloudTalk webhook functionality
 router.get('/test', (req, res) => {
     res.json({
-        message: 'CloudTalk webhook router is active',
+        message: 'CloudTalk webhook router is active - Optimized for 4 core events',
         endpoints: [
-            'POST /cloudtalk-webhooks/call-started',
-            'POST /cloudtalk-webhooks/call-ended',
-            'POST /cloudtalk-webhooks/recording-available',
-            'POST /cloudtalk-webhooks/agent-status-change',
-            'POST /cloudtalk-webhooks/contact-created',
-            'POST /cloudtalk-webhooks/campaign-status-change',
-            'POST /cloudtalk-webhooks/generic'
+            'POST /cloudtalk-webhooks/new-tag - New tag created/assigned',
+            'POST /cloudtalk-webhooks/contact-updated - Contact custom fields updated',  
+            'POST /cloudtalk-webhooks/call-ended - Call completed with full details',
+            'POST /cloudtalk-webhooks/new-note - New note added to contact',
+            'POST /cloudtalk-webhooks/generic - Fallback for other events'
+        ],
+        optimized_for: [
+            'Tag management synchronization',
+            'Contact data updates',
+            'Call tracking and reporting', 
+            'Note synchronization'
         ],
         timestamp: new Date().toISOString()
     });

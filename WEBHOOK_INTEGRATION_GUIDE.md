@@ -162,33 +162,25 @@ POST /bulk/contacts.json - edit_contact con tag "GHL-CUSTOMER"
 
 ### Base URL: `https://your-domain.com/api/cloudtalk-webhooks/`
 
-### 1. 📞 **Call Started** - `/call-started`
-**Trigger:** Chiamata inizia in CloudTalk  
-**Action:** Aggiorna contatto GHL con nota di inizio chiamata
+### 1. 🏷️ **New Tag** - `/new-tag`
+**Trigger:** Nuovo tag creato o assegnato in CloudTalk  
+**Action:** Sincronizza tag al contatto GHL corrispondente con prefisso "CT-"
 
-### 2. ☎️ **Call Ended** - `/call-ended`
-**Trigger:** Chiamata termina in CloudTalk  
-**Action:** Aggiunge dettagli chiamata (durata, outcome) al contatto GHL
+### 2. 🔄 **Contact Updated** - `/contact-updated`
+**Trigger:** Custom field di un contatto aggiornati in CloudTalk  
+**Action:** Sincronizza dati aggiornati al contatto GHL + nota di aggiornamento
 
-### 3. 📼 **Recording Available** - `/recording-available`
-**Trigger:** Registrazione chiamata disponibile  
-**Action:** Notifica al contatto GHL con link alla registrazione
+### 3. 📞 **Call Ended** - `/call-ended`
+**Trigger:** Chiamata completata in CloudTalk  
+**Action:** Aggiunge nota dettagliata con durata, outcome, agente, registrazione + tag specifici
 
-### 4. 👤 **Agent Status Change** - `/agent-status-change`
-**Trigger:** Cambio status agente CloudTalk  
-**Action:** Aggiorna campo custom o nota in GHL
+### 4. 📝 **New Note** - `/new-note`
+**Trigger:** Nuova nota aggiunta a contatto in CloudTalk  
+**Action:** Sincronizza nota al contatto GHL con contesto CloudTalk + tag agente
 
-### 5. 👥 **Contact Created** - `/contact-created`
-**Trigger:** Nuovo contatto creato in CloudTalk  
-**Action:** Crea/aggiorna contatto corrispondente in GHL
-
-### 6. 📈 **Campaign Status Change** - `/campaign-status-change`
-**Trigger:** Status campagna CloudTalk cambia  
-**Action:** Aggiorna pipeline o stage dei contatti interessati in GHL
-
-### 7. 🔄 **Generic** - `/generic`
-**Trigger:** Webhook generico CloudTalk  
-**Action:** Log e processamento fallback
+### 5. 🔄 **Generic** - `/generic`
+**Trigger:** Altri webhook CloudTalk non specifici  
+**Action:** Log e processamento fallback per eventi non categorizzati
 
 ---
 
@@ -211,12 +203,11 @@ Trigger: Status Change      → https://your-domain.com/api/ghl-webhooks/status-
 Nel dashboard CloudTalk, configura i webhook URL:
 
 ```
-Event: Call Started         → https://your-domain.com/api/cloudtalk-webhooks/call-started
-Event: Call Ended          → https://your-domain.com/api/cloudtalk-webhooks/call-ended
-Event: Recording Available → https://your-domain.com/api/cloudtalk-webhooks/recording-available
-Event: Agent Status Change → https://your-domain.com/api/cloudtalk-webhooks/agent-status-change
-Event: Contact Created     → https://your-domain.com/api/cloudtalk-webhooks/contact-created
-Event: Campaign Change     → https://your-domain.com/api/cloudtalk-webhooks/campaign-status-change
+Event: New Tag Created/Assigned    → https://your-domain.com/api/cloudtalk-webhooks/new-tag
+Event: Contact Updated (Custom)    → https://your-domain.com/api/cloudtalk-webhooks/contact-updated
+Event: Call Ended                  → https://your-domain.com/api/cloudtalk-webhooks/call-ended
+Event: Note Added                  → https://your-domain.com/api/cloudtalk-webhooks/new-note
+Event: Other Events (Fallback)    → https://your-domain.com/api/cloudtalk-webhooks/generic
 ```
 
 ## 🧪 **TESTING DEGLI ENDPOINT**
@@ -234,10 +225,25 @@ curl https://your-domain.com/api/ghl-webhooks/test
 
 ### Test CloudTalk Webhooks:
 ```bash  
-# Test endpoint specifico
-curl -X POST https://your-domain.com/api/cloudtalk-webhooks/call-started \
+# Test new-tag endpoint
+curl -X POST https://your-domain.com/api/cloudtalk-webhooks/new-tag \
   -H "Content-Type: application/json" \
-  -d '{"Call_id":"123456","Call_uuid":"uuid-123","Agent_name":"Roberto"}'
+  -d '{"tag_name":"VIP","contact_id":"123","contact_name":"Mario Rossi","contact_phone":"+393501234567"}'
+
+# Test contact-updated endpoint
+curl -X POST https://your-domain.com/api/cloudtalk-webhooks/contact-updated \
+  -H "Content-Type: application/json" \
+  -d '{"contact_id":"123","contact_name":"Mario Rossi","contact_phone":"+393501234567","updated_fields":{"company":"NewCorp"}}'
+
+# Test call-ended endpoint
+curl -X POST https://your-domain.com/api/cloudtalk-webhooks/call-ended \
+  -H "Content-Type: application/json" \
+  -d '{"Call_id":"123456","Call_duration":"120","Agent_name":"Roberto","Contact_phone":"+393501234567"}'
+
+# Test new-note endpoint  
+curl -X POST https://your-domain.com/api/cloudtalk-webhooks/new-note \
+  -H "Content-Type: application/json" \
+  -d '{"note_content":"Test note","contact_id":"123","contact_name":"Mario Rossi","contact_phone":"+393501234567"}'
 
 # Test tutti gli endpoint
 curl https://your-domain.com/api/cloudtalk-webhooks/test

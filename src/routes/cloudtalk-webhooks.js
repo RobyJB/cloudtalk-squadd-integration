@@ -3,6 +3,7 @@ import { processCloudTalkWebhook } from '../../API Squadd/webhook-to-ghl-process
 import { logRequest, logError, log } from '../logger.js';
 import { saveWebhookPayload } from '../utils/webhook-payload-logger.js';
 import { isWebhookAlreadyProcessed, markWebhookAsProcessed } from '../utils/webhook-deduplication.js';
+import { processCallEndedWebhook } from '../services/cloudtalk-campaign-automation.js';
 
 const router = express.Router();
 
@@ -83,6 +84,126 @@ async function handleWebhook(req, res, webhookType) {
   }
 }
 
+/**
+ * Handler specializzato per webhook call-ended con Campaign Automation
+ * Integra il processo esistente con la logica di progressione campagne
+ */
+async function handleCallEndedWebhook(req, res) {
+  const timestamp = new Date().toISOString();
+  const webhookType = 'call-ended';
+  
+  // Estrai correlation ID per il tracking
+  const correlationId = req.body.call_uuid || req.body.call_id || req.body.Call_id || `webhook_${Date.now()}`;
+  
+  log(`📞 [${timestamp}] CloudTalk Webhook: CALL-ENDED (Campaign Automation)`);
+  log(`🔗 Correlation ID: ${correlationId}`);
+  log(`📡 Headers: ${JSON.stringify(req.headers, null, 2)}`);
+  log(`📋 Payload: ${JSON.stringify(req.body, null, 2)}`);
+
+  // Check for duplicate webhook
+  const callId = req.body.call_id || req.body.Call_id || req.body.call_uuid;
+  if (callId && isWebhookAlreadyProcessed(callId, webhookType)) {
+    log(`🔄 Skipping duplicate webhook: ${callId}_${webhookType}`);
+    return res.json({
+      success: true,
+      message: 'Webhook already processed (duplicate)',
+      callId: callId,
+      webhookType: webhookType,
+      timestamp: timestamp
+    });
+  }
+
+  // Save webhook payload to JSON file
+  const saveResult = await saveWebhookPayload('cloudtalk', webhookType, req.body, req.headers);
+  if (saveResult.success) {
+    log(`💾 Payload salvato in: ${saveResult.filepath}`);
+  } else {
+    logError(`❌ Errore salvando payload: ${saveResult.error}`);
+  }
+
+  try {
+    // 1. PRIMA: Esegui Campaign Automation (priorità alta)
+    let campaignResult = null;
+    try {
+      campaignResult = await processCallEndedWebhook(req.body, correlationId);
+      
+      if (campaignResult.success) {
+        log(`✅ Campaign Automation completata con successo!`);
+        log(`👤 Contatto: ${campaignResult.contact?.name} (${campaignResult.contact?.id})`);
+        log(`🔢 Tentativi: ${campaignResult.attempts?.previous} → ${campaignResult.attempts?.new}`);
+        
+        if (campaignResult.campaign) {
+          log(`📈 Campagna spostata: ${campaignResult.campaign.source} → ${campaignResult.campaign.target}`);
+        }
+      } else {
+        log(`⚠️ Campaign Automation saltata: ${campaignResult.reason}`);
+      }
+      
+    } catch (campaignError) {
+      logError(`❌ Campaign Automation fallita: ${campaignError.message}`);
+      
+      // Se campaign automation fallisce, rispondi 500 per retry
+      // (specialmente per errori di update custom field)
+      return res.status(500).json({
+        success: false,
+        error: 'Campaign automation failed',
+        details: campaignError.message,
+        webhookType: webhookType,
+        timestamp: timestamp,
+        retryable: true
+      });
+    }
+    
+    // 2. DOPO: Esegui processo esistente GHL (priorità bassa)
+    let ghlResult = null;
+    try {
+      ghlResult = await processCloudTalkWebhook(req.body, webhookType);
+      
+      if (ghlResult.success) {
+        log(`✅ GHL Integration completata con successo!`);
+      } else {
+        log(`⚠️ GHL Integration fallita: ${ghlResult.error || ghlResult.reason}`);
+      }
+      
+    } catch (ghlError) {
+      logError(`❌ GHL Integration error (non-critical): ${ghlError.message}`);
+      // GHL errors non bloccano il processo
+    }
+    
+    // 3. Mark webhook as processed (solo se campaign automation ok)
+    if (callId) {
+      markWebhookAsProcessed(callId, webhookType);
+    }
+    
+    // 4. Risposta finale
+    const response = {
+      success: true,
+      message: 'CloudTalk call-ended webhook processed with Campaign Automation',
+      timestamp: timestamp,
+      campaignAutomation: campaignResult || { success: false, reason: 'Not processed' },
+      ghlIntegration: ghlResult || { success: false, reason: 'Not processed' }
+    };
+    
+    // Include contact info if available from campaign automation
+    if (campaignResult?.contact) {
+      response.contact = campaignResult.contact;
+    }
+    
+    log(`🎉 Call-ended webhook processing completed successfully!`);
+    res.json(response);
+    
+  } catch (error) {
+    logError(`💥 Errore nel processamento call-ended webhook: ${error.message}`);
+
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      webhookType: webhookType,
+      timestamp: timestamp
+    });
+  }
+}
+
 // CloudTalk Webhook Endpoints
 
 /**
@@ -118,11 +239,11 @@ router.post('/call-started', async (req, res) => {
 });
 
 /**
- * Call ended webhook
+ * Call ended webhook with Campaign Automation
  * POST /api/cloudtalk-webhooks/call-ended
  */
 router.post('/call-ended', async (req, res) => {
-  await handleWebhook(req, res, 'call-ended');
+  await handleCallEndedWebhook(req, res);
 });
 
 /**

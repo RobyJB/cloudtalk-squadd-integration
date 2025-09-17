@@ -378,7 +378,7 @@ start_tunnel() {
 
     while [[ $attempts -lt $max_attempts ]]; do
         if [[ -f "$TUNNEL_LOG" ]]; then
-            local url=$(grep -o 'https://.*\.trycloudflare\.com' "$TUNNEL_LOG" | head -1)
+            local url=$(grep -a -o 'https://.*\.trycloudflare\.com' "$TUNNEL_LOG" | head -1)
             if [[ -n "$url" ]]; then
                 TUNNEL_URL=$url
                 echo -e "${GREEN}✅ Tunnel active: $TUNNEL_URL${NC}"

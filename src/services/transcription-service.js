@@ -208,7 +208,20 @@ export async function extractKeyPoints(transcription) {
       return phase1Result;
     }
 
-    // PHASE 2: Validation and coaching feedback
+    // Check if call is not substantial - skip Phase 2 if so
+    if (phase1Result.analysis.call_type === 'non_sostanziosa') {
+      log(`⚠️ Non-substantial call detected, skipping Phase 2 coaching`);
+
+      return {
+        success: true,
+        analysis: {
+          ...phase1Result.analysis,
+          coaching: null // No coaching for non-substantial calls
+        }
+      };
+    }
+
+    // PHASE 2: Validation and coaching feedback (only for substantial calls)
     const phase2Result = await performPhase2Coaching(transcription, phase1Result.analysis);
     if (!phase2Result.success) {
       return phase2Result;
@@ -253,8 +266,14 @@ IDENTIFICAZIONE SPEAKER:
 - SETTER: Si presenta come Squadd, fa domande sul business del lead, propone appuntamenti
 - LEAD: Risponde a domande sulla propria azienda, chiede informazioni su Squadd
 
+IMPORTANTE: Rileva se questa è una chiamata SOSTANZIOSA o NON AVVENUTA:
+- SOSTANZIOSA: Dialogo reale tra setter e lead con contenuto commerciale significativo
+- NON AVVENUTA: Chiamate brevi, accordi per ricontattarsi, rifiuti immediati, note tecniche, test
+
 ANALIZZA e rispondi in JSON:
 {
+  "call_type": "sostanziosa/non_sostanziosa",
+  "call_summary": "Se non sostanziosa, riassunto veloce di cosa è successo nella chiamata (es: 'Lead e setter si sono accordati per risentirsi domani alle 15:00' oppure 'Lead ha mostrato disinteresse immediato')",
   "speakers": {
     "setter_identified": true/false,
     "lead_identified": true/false,
@@ -501,10 +520,24 @@ ${transcription}
 ⏰ Elaborata: ${new Date(processedAt).toLocaleString('it-IT')}`;
   }
 
-  // New Squadd format with coaching
+  // Check if this is a non-substantial call
+  if (analysis.call_type === 'non_sostanziosa') {
+    return `📞 CHIAMATA NON AVVENUTA
+
+📋 ${analysis.call_summary || 'Chiamata tecnica o senza dialogo commerciale'}
+
+📝 Trascrizione: ${transcription}
+
+⏰ Elaborata: ${new Date(processedAt).toLocaleString('it-IT')}`;
+  }
+
+  // Full analysis format for substantial calls
   const { coaching, speakers, call_outcome, lead_info, sentiment } = analysis;
 
-  return `${coaching.riassunto.appuntamento}
+  return `✅ REGISTRAZIONE CARICATA IN CHAT
+📎 File audio disponibile nella conversazione
+
+${coaching.riassunto.appuntamento}
 
 ${coaching.riassunto.categoria_lead}
 

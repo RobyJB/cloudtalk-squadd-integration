@@ -4,11 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a CloudTalk API integration middleware with two main components:
-1. **Express API Middleware** - A minimal proxy server that forwards API requests
-2. **CloudTalk API System** - A comprehensive test suite and integration layer for CloudTalk APIs
+This is a CloudTalk ↔ GoHighLevel Integration Middleware with AI-powered call analysis. The system consists of three main components:
+1. **Express API Middleware** - Webhook receiver and API proxy for telephony integration
+2. **CloudTalk API System** - Comprehensive test suite and integration layer for CloudTalk APIs
+3. **GoHighLevel Integration** - Bidirectional sync system with AI-powered call transcription and analysis
 
-The project provides a bridge between external systems (like Squadd) and CloudTalk's telephony platform, with extensive testing and webhook capabilities.
+The project provides real-time integration between CloudTalk's telephony platform and GoHighLevel CRM, featuring automated call recording processing, OpenAI-powered transcription, and intelligent call coaching analysis.
 
 ## Common Development Commands
 
@@ -21,18 +22,27 @@ npm run dev                   # Start development server with file watching
 ### CloudTalk API Testing
 ```bash
 # Test all GET endpoints (read operations)
-node API/GET/run-all-get-tests.js
+node "API CloudTalk/GET/run-all-get-tests.js"
 
 # Test all POST endpoints (write/action operations)
-node API/POST/run-all-post-tests.js
+node "API CloudTalk/POST/run-all-post-tests.js"
 
 # Test all PUT endpoints (create operations)
-node API/PUT/run-all-put-tests.js
+node "API CloudTalk/PUT/run-all-put-tests.js"
 
 # Test specific endpoints
-node API/GET/get-calls.js     # Get call history
-node API/GET/get-agents.js    # Get agent list
-node API/POST/post-make-call.js  # Make a test call
+node "API CloudTalk/GET/get-calls.js"     # Get call history
+node "API CloudTalk/GET/get-agents.js"    # Get agent list
+node "API CloudTalk/POST/post-make-call.js"  # Make a test call
+```
+
+### GoHighLevel Integration Testing
+```bash
+# Process webhook to GoHighLevel
+node "API Squadd/webhook-to-ghl-processor.js"
+
+# Test GoHighLevel API functions
+node "API Squadd/tests/test-functions.js"
 ```
 
 ### Webhook Development
@@ -45,25 +55,17 @@ WEBHOOK_VERBOSE=1             # Enable verbose logging
 WEBHOOK_KEEP_EXISTING=1       # Keep existing backend running
 ```
 
-### Webhook Payload Analysis
+### Webhook Testing and Development
 ```bash
-# View all webhook payloads
-node webhook-payload-viewer.js list
+# Test specific webhook endpoints directly
+curl -X POST http://localhost:3000/api/cloudtalk-webhooks/call-recording-ready \
+     -H "Content-Type: application/json" \
+     -d '{"call_id": "test-123", "recording_url": "https://example.com/recording.wav"}'
 
-# View CloudTalk webhook payloads only
-node webhook-payload-viewer.js list cloudtalk
-
-# View specific webhook type
-node webhook-payload-viewer.js list cloudtalk call-recording-ready
-
-# View webhook statistics
-node webhook-payload-viewer.js stats
-
-# View specific payload file
-node webhook-payload-viewer.js view webhook-payloads/cloudtalk/call-ended_2024-01-15.json
-
-# Clean old webhook files (older than 30 days)
-node webhook-payload-viewer.js clean 30
+# Test GoHighLevel webhook processing
+curl -X POST http://localhost:3000/api/ghl-webhooks/new-contact \
+     -H "Content-Type: application/json" \
+     -d '{"contact": {"name": "Test User", "phone": "+1234567890"}}'
 ```
 
 ## Architecture Overview
@@ -74,14 +76,24 @@ node webhook-payload-viewer.js clean 30
 - **`src/config.js`** - Basic server configuration (PORT, TARGET_URL)
 - **`src/logger.js`** - Request/error logging utilities
 - **`src/routes/recordings.js`** - Specialized routes for call recording management
-- **`src/services/`** - Database and recording management services
+- **`src/routes/cloudtalk-webhooks.js`** - 7 CloudTalk webhook endpoints for call events
+- **`src/routes/ghl-webhooks.js`** - 5 GoHighLevel webhook endpoints for CRM sync
+- **`src/services/`** - Database, recording management, and AI processing services
+  - **`database.js`** - SQLite database abstraction for recordings
+  - **`transcription-service.js`** - OpenAI Whisper integration with AI analysis
+  - **`recording-manager.js`** - Call recording download and storage
+  - **`cloudtalk-recording-service.js`** - CloudTalk-specific recording handling
+  - **`ghl-conversation-service.js`** - GoHighLevel conversation API integration
 
-### CloudTalk API System (`API/`)
-- **`API/config.js`** - CloudTalk API configuration, authentication, and request utilities
-- **`API/GET/`** - Read-only operations (agents, calls, contacts, AI analytics)
-- **`API/POST/`** - Write operations (make calls, edit contacts, bulk operations)
-- **`API/PUT/`** - Create operations (add agents, contacts, campaigns, etc.)
-- **`API/recording-integration.js`** - Call recording management integration
+### CloudTalk API System (`API CloudTalk/`)
+- **`API CloudTalk/config.js`** - CloudTalk API configuration, authentication, and request utilities
+- **`API CloudTalk/GET/`** (24 files) - Read-only operations (agents, calls, contacts, AI analytics)
+- **`API CloudTalk/POST/`** (9 files) - Write operations (make calls, edit contacts, bulk operations)
+- **`API CloudTalk/PUT/`** (11 files) - Create operations (add agents, contacts, campaigns, etc.)
+
+### GoHighLevel Integration System (`API Squadd/`)
+- **`API Squadd/webhook-to-ghl-processor.js`** - Main webhook processing pipeline
+- **`API Squadd/tests/`** - GoHighLevel API interaction functions and testing
 
 ### Key API Endpoints Structure
 
@@ -110,9 +122,16 @@ Required environment variables in `.env`:
 CLOUDTALK_API_KEY_ID=your_api_key_id
 CLOUDTALK_API_SECRET=your_api_secret
 
+# GoHighLevel API Key (REQUIRED for CRM integration)
+GHL_API_KEY=your_ghl_api_key
+
+# OpenAI API Key (REQUIRED for transcription service)
+OPENAI_API_KEY=your_openai_api_key
+
 # Server Configuration
 PORT=3000
 NODE_ENV=development
+LOG_LEVEL=info
 
 # Optional for proxy functionality
 TARGET_URL=your_downstream_api_url
@@ -120,7 +139,7 @@ TARGET_URL=your_downstream_api_url
 
 ## Authentication & API Configuration
 
-CloudTalk APIs use **Basic Authentication** with API Key ID and Secret. The authentication is handled automatically by `API/config.js`:
+CloudTalk APIs use **Basic Authentication** with API Key ID and Secret. The authentication is handled automatically by `API CloudTalk/config.js`:
 
 - Base URL: `https://my.cloudtalk.io/api`
 - Analytics URL: `https://analytics-api.cloudtalk.io/api`
@@ -131,6 +150,25 @@ All API calls go through the `makeCloudTalkRequest()` helper which handles:
 - JSON/Binary response parsing
 - Error handling and logging
 - Rate limiting considerations
+
+## AI-Powered Call Analysis Architecture
+
+### Real-time Processing Pipeline
+1. **CloudTalk** sends webhook with recording URL when call ends
+2. **Middleware** downloads and processes recording via `recording-manager.js`
+3. **OpenAI Whisper** transcribes audio to text with Italian language support
+4. **Two-phase AI analysis** via `transcription-service.js`:
+   - **Phase 1**: Speaker identification and call classification (substantial vs non-substantial)
+   - **Phase 2**: BANT framework analysis and coaching feedback (substantial calls only)
+5. **Results sync** to GoHighLevel contact notes/conversations via `ghl-conversation-service.js`
+6. **Call metadata** logged in SQLite database
+
+### AI Analysis Features
+- **Custom vocabulary** for business terminology accuracy
+- **Smart call filtering** to focus coaching on meaningful conversations
+- **BANT framework scoring**: Budget, Authority, Need, Timeline
+- **Coaching feedback** with specific improvement recommendations
+- **Speaker identification** to separate agent from customer speech
 
 ## Testing Strategy
 
@@ -153,23 +191,31 @@ const details = await getCallDetails(realCallId);
 const result = await makeCall(agentId, '+393513416607');
 ```
 
-## Webhook & CueCard Integration
+## Webhook Integration Architecture
 
-The project includes a comprehensive webhook development environment:
+The project features a comprehensive dual-provider webhook system:
 
+### CloudTalk Webhooks (7 endpoints)
+- **`/api/cloudtalk-webhooks/call-recording-ready`** - Triggers AI transcription pipeline
+- **`/api/cloudtalk-webhooks/transcription-ready`** - CloudTalk native transcription events
+- **`/api/cloudtalk-webhooks/new-tag`** - Tag management sync
+- **`/api/cloudtalk-webhooks/contact-updated`** - Contact information changes
+- **`/api/cloudtalk-webhooks/call-started`** - Real-time call initiation
+- **`/api/cloudtalk-webhooks/call-ended`** - Call completion events
+- **`/api/cloudtalk-webhooks/new-note`** - Note synchronization
+
+### GoHighLevel Webhooks (5 endpoints)
+- **`/api/ghl-webhooks/new-contact`** - Bidirectional contact sync
+- **`/api/ghl-webhooks/new-tag`** - Tag management integration
+- **`/api/ghl-webhooks/new-note`** - Note synchronization
+- **`/api/ghl-webhooks/pipeline-stage-changed`** - Pipeline status updates
+- **`/api/ghl-webhooks/opportunity-status-changed`** - Opportunity tracking
+
+### Webhook Development Environment
 - **`start-cloudtalk-webhooks.sh`** - Complete development setup with Cloudflare tunnels
-- **CueCard Integration** - Real-time call popup system during active calls
-- **Webhook Server** - Express server for receiving CloudTalk workflow automation events
-
-### CueCard Usage Pattern
-```javascript
-const cueCardData = {
-  call_uuid: "uuid-from-webhook",
-  type: "blocks",
-  title: "Contact Information",
-  content: [/* field definitions */]
-};
-```
+- **Automatic payload logging** with organized storage in `webhook-payloads/`
+- **Webhook deduplication** to prevent double-processing
+- **Real-time processing** with error handling and recovery
 
 ## Key Integration Points
 
@@ -183,13 +229,40 @@ const cueCardData = {
 - All test calls route to this number
 - Special handling in CueCard popups for this contact
 
-### Webhook Payload Logging
-- **Automatic Payload Storage**: All webhooks automatically save payloads to `webhook-payloads/` directory
-- **Organized by Provider**: CloudTalk webhooks → `webhook-payloads/cloudtalk/`, Squadd/GHL → `webhook-payloads/squadd/`
-- **Timestamped Files**: Each webhook creates individual JSON files with timestamp
-- **Daily Aggregation**: JSONL files aggregate all webhooks of same type per day
-- **Rich Metadata**: Includes headers, IP, user-agent, and processing metadata
-- **Analysis Tools**: Use `webhook-payload-viewer.js` to browse, analyze, and clean webhook data
+### Data Flow Architecture
+
+```
+CloudTalk → Webhooks → Middleware → AI Analysis → GoHighLevel
+    ↑                                                    ↓
+    ←────── Contact Sync & Campaign Management ─────┘
+```
+
+### Database Schema (SQLite)
+
+```sql
+recordings (
+  id INTEGER PRIMARY KEY,
+  call_id TEXT UNIQUE,
+  file_path TEXT,
+  file_size INTEGER,
+  duration INTEGER,
+  format TEXT DEFAULT 'wav',
+  agent_name TEXT,
+  phone_from TEXT,
+  phone_to TEXT,
+  call_type TEXT,
+  transcription TEXT,
+  metadata TEXT,
+  created_at DATETIME,
+  updated_at DATETIME
+)
+```
+
+### Webhook Payload Management
+- **Automatic payload storage** in `webhook-payloads/` directory organized by provider
+- **Webhook deduplication** prevents double-processing using request signatures
+- **Rich metadata capture** including headers, IP, user-agent, and processing status
+- **SQLite database** tracks all call recordings and processing status
 
 ## Development Tips
 

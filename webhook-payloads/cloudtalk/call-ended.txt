@@ -1,0 +1,39 @@
+
+=== WEBHOOK RECEIVED: 2025-09-17T08:23:19.118Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "packs-opt-attraction-beaches.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "189",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "3.121.47.241",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "DE",
+  "cf-ray": "98073368949bd399-MAD",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "1d5ce230-82f2-4994-84ba-bfdb07431f91",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "3.121.47.241",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 3.121.47.241
+
+PAYLOAD:
+{
+  "call_uuid": "44fe27cd-5268-4670-993e-01293c9f8833",
+  "internal_number": 40312296109,
+  "contact_id": 1451646073,
+  "agent_id": 493933,
+  "external_number": 393513416607,
+  "# di tentativi di chiamata": null
+}
+
+==============================
+

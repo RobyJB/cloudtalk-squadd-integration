@@ -506,8 +506,8 @@ export async function processRecordingTranscription(audioUrl) {
 export function formatTranscriptionForGHL(transcriptionResult) {
   const { transcription, analysis, processedAt } = transcriptionResult;
 
-  // Fallback for old format compatibility
-  if (!analysis || !analysis.coaching) {
+  // Fallback for old format compatibility (only if analysis completely failed)
+  if (!analysis) {
     const { keyPoints = [], summary = "Analisi non disponibile" } = transcriptionResult;
     return `📋 Riassunto: ${summary}
 

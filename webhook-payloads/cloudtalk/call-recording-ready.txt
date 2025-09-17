@@ -1029,3 +1029,102 @@ PAYLOAD:
 
 ==============================
 
+
+=== WEBHOOK RECEIVED: 2025-09-17T10:13:17.739Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "packs-opt-attraction-beaches.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "249",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "3.78.136.153",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "DE",
+  "cf-ray": "9807d48145976946-MAD",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "1d5ce230-82f2-4994-84ba-bfdb07431f91",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "3.78.136.153",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 3.78.136.153
+
+PAYLOAD:
+{
+  "call_id": 1003219805,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMzIxOTgwNQ%3D%3D/NTYyMTBiMDMwYjhhYTE2ZTQ3MzJjMDI2MDEyMzc2NDg0ZGVhZmJiZjRiZThlZWNjNDg0N2Q0NTdmNzc1YWYyMQ%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-17T10:22:37.599Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "packs-opt-attraction-beaches.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "249",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "3.65.161.49",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "DE",
+  "cf-ray": "9807e22cd39ea6a2-MAD",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "1d5ce230-82f2-4994-84ba-bfdb07431f91",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "3.65.161.49",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 3.65.161.49
+
+PAYLOAD:
+{
+  "call_id": 1003231565,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMzIzMTU2NQ%3D%3D/MzM1ZmIyOGQ5Zjc5NTdhMThlYTg5ZTcyMTE0YjU2OGU5NmJlMmRjMTc0YzQwYzliZGM1YmExOTE1NjY1MmM0Yw%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-17T11:17:16.329Z ===
+Provider: cloudtalk
+Webhook Type: call-recording-ready
+Headers: {
+  "host": "localhost:3000",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "276"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1003219805,
+  "recording_url": "https://my.cloudtalk.io/pub/r/MTAwMzIxOTgwNQ%3D%3D/NTYyMTBiMDMwYjhhYTE2ZTQ3MzJjMDI2MDEyMzc2NDg0ZGVhZmJiZjRiZThlZWNjNDg0N2Q0NTdmNzc1YWYyMQ%3D%3D.wav",
+  "internal_number": 40312296109,
+  "external_number": 393513416607
+}
+
+==============================
+

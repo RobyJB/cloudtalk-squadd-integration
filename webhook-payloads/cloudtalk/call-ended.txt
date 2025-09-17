@@ -154,3 +154,108 @@ PAYLOAD:
 
 ==============================
 
+
+=== WEBHOOK RECEIVED: 2025-09-17T10:13:19.064Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "packs-opt-attraction-beaches.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "189",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "3.65.161.49",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "DE",
+  "cf-ray": "9807d48a07db4d82-MAD",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "1d5ce230-82f2-4994-84ba-bfdb07431f91",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "3.65.161.49",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 3.65.161.49
+
+PAYLOAD:
+{
+  "call_uuid": "0437c088-7cde-4d4c-abb2-d963b3387a08",
+  "internal_number": 40312296109,
+  "contact_id": 1451646073,
+  "agent_id": 493933,
+  "external_number": 393513416607,
+  "# di tentativi di chiamata": null
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-17T10:20:09.844Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "228"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_uuid": "0437c088-7cde-4d4c-abb2-d963b3387a08",
+  "internal_number": 40312296109,
+  "contact_id": 1451646073,
+  "agent_id": 493933,
+  "external_number": 393513416607,
+  "# di tentativi di chiamata": null
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-17T10:22:34.446Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "packs-opt-attraction-beaches.trycloudflare.com",
+  "user-agent": "cloudtalk-workflow-automation",
+  "content-length": "189",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip",
+  "cdn-loop": "cloudflare; loops=1; subreqs=1",
+  "cf-connecting-ip": "3.65.161.49",
+  "cf-ew-via": "15",
+  "cf-ipcountry": "DE",
+  "cf-ray": "9807e21926423a5a-MAD",
+  "cf-visitor": "{\"scheme\":\"https\"}",
+  "cf-warp-tag-id": "1d5ce230-82f2-4994-84ba-bfdb07431f91",
+  "cf-worker": "trycloudflare.com",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "x-forwarded-for": "3.65.161.49",
+  "x-forwarded-proto": "https"
+}
+User-Agent: cloudtalk-workflow-automation
+Content-Type: application/json
+IP: 3.65.161.49
+
+PAYLOAD:
+{
+  "call_uuid": "d835b3cd-a989-467b-9882-fc5e979c08ca",
+  "internal_number": 40312296109,
+  "contact_id": 1451646073,
+  "agent_id": 493933,
+  "external_number": 393513416607,
+  "# di tentativi di chiamata": null
+}
+
+==============================
+

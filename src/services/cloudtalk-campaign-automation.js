@@ -72,57 +72,107 @@ function logAutomation(level, correlationId, data) {
 
 /**
  * Estrae il numero di telefono dal webhook call-ended
+ * Gestisce il formato reale dei webhook CloudTalk
  */
 function extractPhoneFromWebhook(webhookPayload) {
-  // Il payload real che riceviamo contiene external_number
+  logAutomation('info', 'extract-phone', {
+    action: 'extract_phone_from_webhook',
+    payload_fields: Object.keys(webhookPayload)
+  });
+  
+  // Il payload reale CloudTalk contiene external_number
   if (webhookPayload.external_number) {
-    return webhookPayload.external_number.toString();
+    const phone = webhookPayload.external_number.toString();
+    logAutomation('info', 'extract-phone', {
+      action: 'phone_extracted',
+      source: 'external_number',
+      phone: phone
+    });
+    return phone;
   }
   
   // Fallback su altri campi possibili
   if (webhookPayload.Contact_phone) {
-    return webhookPayload.Contact_phone;
+    return webhookPayload.Contact_phone.toString();
   }
   
   if (webhookPayload.to_number) {
-    return webhookPayload.to_number;
+    return webhookPayload.to_number.toString();
   }
   
   if (webhookPayload.from_number) {
-    return webhookPayload.from_number;  
+    return webhookPayload.from_number.toString();  
   }
+  
+  logAutomation('warn', 'extract-phone', {
+    action: 'phone_not_found',
+    payload: webhookPayload
+  });
   
   return null;
 }
 
 /**
  * Normalizza numero di telefono in formato E.164
- * Riusa logica esistente o implementa base
+ * Gestisce numeri italiani con e senza prefisso +
  */
 function normalizePhone(rawPhone) {
   if (!rawPhone) return null;
   
   let phone = rawPhone.toString().trim();
   
+  logAutomation('info', 'normalize-phone', {
+    action: 'normalize_phone_start',
+    input: phone
+  });
+  
   // Se inizia già con +, è probabile sia E.164
   if (phone.startsWith('+')) {
+    logAutomation('info', 'normalize-phone', {
+      action: 'phone_already_normalized',
+      result: phone
+    });
     return phone;
   }
   
   // Se inizia con 393 (Italia mobile), aggiungi +
   if (phone.startsWith('393')) {
-    return '+' + phone;
+    const normalized = '+' + phone;
+    logAutomation('info', 'normalize-phone', {
+      action: 'normalized_italian_mobile',
+      input: phone,
+      result: normalized
+    });
+    return normalized;
   }
   
   // Se inizia con 39 (Italia), aggiungi +
   if (phone.startsWith('39') && phone.length >= 10) {
-    return '+' + phone;
+    const normalized = '+' + phone;
+    logAutomation('info', 'normalize-phone', {
+      action: 'normalized_italian',
+      input: phone,
+      result: normalized
+    });
+    return normalized;
   }
   
-  // Altri paesi... per ora assumiamo sia già corretto
+  // Altri paesi o numeri lunghi senza +
   if (phone.length >= 10 && !phone.startsWith('+')) {
-    return '+' + phone; 
+    const normalized = '+' + phone;
+    logAutomation('info', 'normalize-phone', {
+      action: 'normalized_generic',
+      input: phone,
+      result: normalized
+    });
+    return normalized; 
   }
+  
+  logAutomation('warn', 'normalize-phone', {
+    action: 'phone_normalization_failed',
+    input: phone,
+    result: phone
+  });
   
   return phone;
 }

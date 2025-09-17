@@ -1,4 +1,5 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config();
 import express from 'express';
 import { createProxyMiddleware } from './proxy.js';
 import { logRequest, logError, log } from './logger.js';

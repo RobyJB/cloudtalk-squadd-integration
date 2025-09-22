@@ -4,3 +4,11 @@ logs/*.log
 .env.production
 .env.staging
 *.key
+
+# macOS
+.DS_Store
+
+# Temporary import files
+*-import-results-*.json
+Contatti*.csv
+serena-import-results-*.json

@@ -125,6 +125,40 @@ async function processRecordingReady(contact, payload) {
     if (transcription.success) {
       console.log('✅ Transcription completed successfully!');
       transcriptionResult = transcription.result;
+      
+      // Estrai trascrizione e analisi AI
+      const transcriptionText = transcription.result?.transcription || '';
+      const aiAnalysisResult = transcription.result?.analysis;
+      
+      // CONTROLLO SEGRETERIA: Trascrizione vuota/breve OPPURE AI rileva segreteria
+      const isEmptyTranscription = !transcriptionText || transcriptionText.trim().length < 10;
+      const isAIDetectedVoicemail = aiAnalysisResult?.call_type === 'segreteria';
+      
+      if (isEmptyTranscription || isAIDetectedVoicemail) {
+        if (isEmptyTranscription) {
+          console.log('📵 Trascrizione vuota/troppo breve - segreteria');
+        } else {
+          console.log('🤖 AI rilevato segreteria dal contenuto');
+        }
+        
+        noteText = `📵 RISPONDE SEGRETERIA - CLOUDTALK`;
+        
+        const result = await addNoteToGHLContact(contact.id, noteText);
+        
+        return {
+          action: 'voicemail_detected',
+          noteId: result.id,
+          callId: payload.call_id,
+          recordingUrl: payload.recording_url,
+          transcriptionSuccess: true,
+          isVoicemail: true,
+          transcriptionText: transcriptionText,
+          transcription: transcriptionResult
+        };
+      }
+      
+      // Chiamata normale - procedi con upload audio e trascrizione completa
+      console.log('📞 Chiamata normale rilevata, procedo con upload completo');
 
       // Try to upload audio directly to conversation
       console.log('📤 Attempting to upload audio to GHL conversation...');
@@ -141,8 +175,7 @@ async function processRecordingReady(contact, payload) {
         console.log('✅ Audio uploaded successfully to conversation!');
 
         // Add success note
-        noteText = `✅ REGISTRAZIONE CARICATA IN CHAT
-📎 File audio disponibile nella conversazione
+        noteText = `✔︎ Conversazione effettuata
 
 ${formatTranscriptionForGHL(transcription.result)}`;
 

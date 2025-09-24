@@ -3,6 +3,7 @@ import { searchGHLContactByPhone } from './tests/search-contact-by-phone.js';
 import { addNoteToGHLContact } from './tests/add-note.js';
 import { processRecordingTranscription, formatTranscriptionForGHL } from '../src/services/transcription-service.js';
 import { uploadAudioToConversation } from '../src/services/ghl-conversation-service.js';
+import { generateSmartCueCard, sendCueCard } from '../src/services/cuecard-service.js';
 
 /**
  * CloudTalk Webhook → GHL Integration Processor
@@ -343,6 +344,7 @@ async function processContactUpdate(contact, payload) {
 async function processCallStarted(contact, payload) {
   console.log('📞 Processing call started...');
 
+  // Step 1: Log chiamata iniziata
   const noteText = `📞 CHIAMATA INIZIATA - CLOUDTALK
 
 📞 Call ID: ${payload.call_id}
@@ -353,12 +355,39 @@ async function processCallStarted(contact, payload) {
 
 ⏳ Chiamata in corso...`;
 
-  const result = await addNoteToGHLContact(contact.id, noteText);
+  const noteResult = await addNoteToGHLContact(contact.id, noteText);
+
+  // Step 2: Genera e invia Smart CueCard se abbiamo call_uuid
+  let cueCardResult = null;
+  if (payload.call_uuid || payload.Call_uuid) {
+    try {
+      console.log('🎯 Generando Smart CueCard per la chiamata...');
+      
+      const callUuid = payload.call_uuid || payload.Call_uuid;
+      const phoneNumber = payload.external_number;
+      
+      // Genera CueCard con dati GHL integrati
+      const smartCueCard = await generateSmartCueCard(phoneNumber);
+      
+      // Invia CueCard all'agente
+      cueCardResult = await sendCueCard(callUuid, smartCueCard);
+      
+      console.log('✅ Smart CueCard inviata con successo!');
+      
+    } catch (cueCardError) {
+      console.error('❌ Errore generazione Smart CueCard:', cueCardError.message);
+      cueCardResult = { success: false, error: cueCardError.message };
+    }
+  } else {
+    console.log('⚠️ Call UUID non trovato, Smart CueCard non inviata');
+  }
 
   return {
-    action: 'call_start_logged',
-    noteId: result.id,
-    callId: payload.call_id
+    action: 'call_start_logged_with_cuecard',
+    noteId: noteResult.id,
+    callId: payload.call_id,
+    cueCardSent: cueCardResult?.success || false,
+    cueCardError: cueCardResult?.error || null
   };
 }
 
@@ -368,12 +397,34 @@ async function processCallStarted(contact, payload) {
 async function processCallEnded(contact, payload) {
   console.log('📞 Processing call ended...');
 
-  const duration = payload.duration || 'N/A';
+  const duration = payload.duration || 0;
   const status = payload.call_status || payload.status || 'N/A';
+  const callId = payload.call_id;
 
-  const noteText = `📞 CHIAMATA TERMINATA - CLOUDTALK
+  // Determina se è una chiamata senza risposta
+  const isNoAnswer = (
+    !duration || 
+    duration === 0 || 
+    duration === 'N/A' ||
+    status === 'missed' ||
+    status === 'no-answer' ||
+    status === 'unanswered' ||
+    !callId ||
+    callId === 'undefined'
+  );
 
-📞 Call ID: ${payload.call_id}
+  let noteText;
+  let action;
+
+  if (isNoAnswer) {
+    // Chiamata senza risposta
+    noteText = `📵 TENTATIVO SENZA RISPOSTA - CLOUDTALK`;
+    action = 'no_answer_logged';
+  } else {
+    // Chiamata effettivamente terminata
+    noteText = `📞 CHIAMATA TERMINATA - CLOUDTALK
+
+📞 Call ID: ${callId}
 📱 Numero: ${payload.external_number}
 👤 Agente: ${payload.agent_name || payload.agent_id || 'N/A'}
 ⏱️ Durata: ${duration}
@@ -381,15 +432,18 @@ async function processCallEnded(contact, payload) {
 🕐 Ora fine: ${new Date().toLocaleString('it-IT')}
 
 ✅ Chiamata completata`;
+    action = 'call_end_logged';
+  }
 
   const result = await addNoteToGHLContact(contact.id, noteText);
 
   return {
-    action: 'call_end_logged',
+    action: action,
     noteId: result.id,
-    callId: payload.call_id,
+    callId: callId,
     duration: duration,
-    status: status
+    status: status,
+    isNoAnswer: isNoAnswer
   };
 }
 

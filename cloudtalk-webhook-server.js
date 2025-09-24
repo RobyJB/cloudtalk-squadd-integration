@@ -1,6 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
+import { generateSmartCueCard, sendCueCard } from './src/services/cuecard-service.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -75,8 +76,7 @@ app.post('/webhook/cloudtalk', async (req, res) => {
         if (callUuid) {
             log('🎯 FOUND CALL UUID! Attempting to send CueCard...', 'green');
             
-            // Import the CueCard function (you'll need to adjust the path)
-            // For now, we'll just log what we would send
+            // Usando il servizio CueCard Smart già importato
             const cueCardData = {
                 call_uuid: callUuid,
                 type: "blocks",
@@ -103,9 +103,21 @@ app.post('/webhook/cloudtalk', async (req, res) => {
             log('📋 CueCard data prepared:', 'cyan');
             log(JSON.stringify(cueCardData, null, 2), 'cyan');
             
-            // TODO: Here you can call your CueCard API
-            // const result = await sendCueCard(cueCardData);
-            log('🎊 CueCard would be sent now with working UUID!', 'green');
+            try {
+                // Genera CueCard intelligente con dati GHL integrati
+                const smartCueCard = await generateSmartCueCard(contactPhone);
+                
+                // Invia la CueCard intelligente
+                const result = await sendCueCard(callUuid, smartCueCard);
+                
+                log('🎊 Smart CueCard inviata con successo!', 'green');
+                log(`📱 ${contactPhone} → GHL data + URL integrati`, 'cyan');
+            } catch (cueCardError) {
+                log(`⚠️ Errore generazione Smart CueCard: ${cueCardError.message}`, 'yellow');
+                log('⚠️ Fallback a CueCard base', 'yellow');
+                // Fallback alla CueCard base se quella smart fallisce
+                // const result = await sendCueCard(callUuid, cueCardData);
+            }
         } else {
             log('⚠️  No call UUID found in webhook payload', 'yellow');
         }

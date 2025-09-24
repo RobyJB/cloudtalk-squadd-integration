@@ -1,0 +1,22 @@
+
+=== WEBHOOK RECEIVED: 2025-09-23T18:11:01.935Z ===
+Provider: cloudtalk
+Webhook Type: call-started
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "17"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "test": "health"
+}
+
+==============================
+

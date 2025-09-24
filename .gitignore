@@ -4,6 +4,7 @@ logs/*.log
 .env.production
 .env.staging
 *.key
+google-service-account.json
 
 # macOS
 .DS_Store

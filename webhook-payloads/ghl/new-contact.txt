@@ -1,0 +1,36 @@
+
+=== WEBHOOK RECEIVED: 2025-09-24T14:24:21.705Z ===
+Provider: ghl
+Webhook Type: new-contact
+Headers: {
+  "host": "localhost:3001",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "accept": "*/*",
+  "accept-language": "*",
+  "sec-fetch-mode": "cors",
+  "user-agent": "node",
+  "accept-encoding": "gzip, deflate",
+  "content-length": "254"
+}
+User-Agent: node
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "contact_id": "eNtxZuc4PLQR2ELzyxOg",
+  "first_name": "Rubertu",
+  "last_name": "Bundici",
+  "full_name": "Rubertu Bundici",
+  "phone": "+393513416607",
+  "user": {
+    "firstName": "Andrea",
+    "lastName": "Guzzonato",
+    "email": "andreaguzzonato.work@gmail.com",
+    "phone": "+393807454525"
+  }
+}
+
+==============================
+

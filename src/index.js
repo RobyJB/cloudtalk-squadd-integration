@@ -7,6 +7,7 @@ import { config } from './config.js';
 import recordingsRouter from './routes/recordings.js';
 import ghlWebhooksRouter from './routes/ghl-webhooks.js';
 import cloudtalkWebhooksRouter from './routes/cloudtalk-webhooks.js';
+import googleSheetsWebhooksRouter from './routes/google-sheets-webhooks.js';
 
 const app = express();
 
@@ -22,8 +23,11 @@ app.use('/api/recordings', recordingsRouter);
 // GoHighLevel webhook routes
 app.use('/api/ghl-webhooks', ghlWebhooksRouter);
 
-// CloudTalk webhook routes  
+// CloudTalk webhook routes
 app.use('/api/cloudtalk-webhooks', cloudtalkWebhooksRouter);
+
+// Google Sheets webhook routes
+app.use('/api/google-sheets-webhooks', googleSheetsWebhooksRouter);
 
 // Minimal proxy route: forwards any method/path under /api to TARGET_URL
 app.use('/api', createProxyMiddleware());

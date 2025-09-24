@@ -52,11 +52,11 @@ router.post('/new-contact', async (req, res) => {
   }
 
   try {
-    // Processa il lead per creazione contatto e chiamata automatica
-    log(`🚀 Avvio processo Lead-to-Call automatico...`);
-    
-    const processResult = await leadToCallService.processLeadToCall(req.body);
-    
+    // Processa il lead per creazione contatto e chiamata automatica con logica enhanced
+    log(`🚀 Avvio processo ENHANCED Lead-to-Call automatico...`);
+
+    const processResult = await leadToCallService.processLeadToCallEnhanced(req.body);
+
     if (processResult.success) {
       // Successo completo
       res.json({
@@ -71,19 +71,31 @@ router.post('/new-contact', async (req, res) => {
         callInitiated: true,
         timestamp: timestamp,
         payloadSaved: saveResult.success,
+        enhanced: {
+          fallbackUsed: processResult.enhancedInfo.fallbackUsed,
+          finalAgentUsedFallback: processResult.enhancedInfo.finalAgentUsedFallback,
+          totalAgentsAttempted: processResult.enhancedInfo.totalAgentsAttempted,
+          busyAgentsSkipped: processResult.enhancedInfo.busyAgentsSkipped.length,
+          roundRobinInfo: processResult.steps.agentDistribution?.fallbackInfo
+        },
         steps: {
           contactCreated: processResult.steps.contactCreation?.success || false,
           agentSelected: processResult.steps.agentDistribution?.success || false,
-          callStarted: processResult.steps.callInitiation?.success || false
+          callStarted: processResult.steps.callInitiation?.success || false,
+          fallbackAttempts: processResult.steps.fallbackAttempts.length
         }
       });
-      
-      log(`✅ Lead-to-Call completato: ${processResult.selectedAgent.name} chiamerà ${req.body.phone}`);
-      
+
+      const finalMessage = processResult.enhancedInfo.finalAgentUsedFallback
+        ? `✅ Lead-to-Call completato con FALLBACK: ${processResult.selectedAgent.name} chiamerà ${req.body.phone} (${processResult.enhancedInfo.totalAgentsAttempted} agenti tentati)`
+        : `✅ Lead-to-Call completato: ${processResult.selectedAgent.name} chiamerà ${req.body.phone}`;
+
+      log(finalMessage);
+
     } else {
       // Errore nel processo
       const errorStatus = getHttpStatusFromError(processResult.finalStatus);
-      
+
       res.status(errorStatus).json({
         success: false,
         message: `Lead-to-Call fallito: ${processResult.error}`,
@@ -92,15 +104,25 @@ router.post('/new-contact', async (req, res) => {
         errorDetails: processResult.error,
         timestamp: timestamp,
         payloadSaved: saveResult.success,
+        enhanced: {
+          fallbackUsed: processResult.enhancedInfo?.fallbackUsed || false,
+          totalAgentsAttempted: processResult.enhancedInfo?.totalAgentsAttempted || 0,
+          busyAgentsSkipped: processResult.enhancedInfo?.busyAgentsSkipped || [],
+          roundRobinInfo: processResult.steps?.agentDistribution?.fallbackInfo
+        },
         steps: {
           contactCreated: processResult.steps?.contactCreation?.success || false,
           agentSelected: processResult.steps?.agentDistribution?.success || false,
-          callStarted: processResult.steps?.callInitiation?.success || false
+          callStarted: processResult.steps?.callInitiation?.success || false,
+          fallbackAttempts: processResult.steps?.fallbackAttempts?.length || 0
         },
         availableAgents: processResult.steps?.agentDistribution?.availableAgents || 0
       });
-      
-      logError(`❌ Lead-to-Call fallito: ${processResult.error}`);
+
+      logError(`❌ Enhanced Lead-to-Call fallito: ${processResult.error}`);
+      if (processResult.enhancedInfo?.busyAgentsSkipped?.length > 0) {
+        logError(`🔴 Agenti occupati saltati: ${processResult.enhancedInfo.busyAgentsSkipped.map(a => a.agentName).join(', ')}`);
+      }
     }
     
   } catch (error) {

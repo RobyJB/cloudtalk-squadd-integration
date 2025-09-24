@@ -1,0 +1,66 @@
+{
+  "lastAgentId": "493933",
+  "lastDistributionTime": "2025-09-24T15:41:12.281Z",
+  "distributionHistory": [
+    {
+      "agentId": "493933",
+      "agentName": "Roberto Bondici",
+      "timestamp": "2025-09-24T15:41:12.281Z",
+      "reason": "SINGLE_AGENT_AVAILABLE",
+      "fallbackUsed": false,
+      "totalAvailableAgents": 1,
+      "leadInfo": {
+        "phone": "+393520441984",
+        "name": "Fallback Test 3"
+      }
+    },
+    {
+      "agentId": "493933",
+      "agentName": "Roberto Bondici",
+      "timestamp": "2025-09-24T15:41:10.803Z",
+      "reason": "SINGLE_AGENT_AVAILABLE",
+      "fallbackUsed": false,
+      "totalAvailableAgents": 1,
+      "leadInfo": {
+        "phone": "+393520441984",
+        "name": "Fallback Test 2"
+      }
+    },
+    {
+      "agentId": "493933",
+      "agentName": "Roberto Bondici",
+      "timestamp": "2025-09-24T15:41:09.361Z",
+      "reason": "SINGLE_AGENT_AVAILABLE",
+      "fallbackUsed": false,
+      "totalAvailableAgents": 1,
+      "leadInfo": {
+        "phone": "+393520441984",
+        "name": "Fallback Test 1"
+      }
+    },
+    {
+      "agentId": "493933",
+      "agentName": "Roberto Bondici",
+      "timestamp": "2025-09-24T15:41:07.551Z",
+      "reason": "SINGLE_AGENT_AVAILABLE",
+      "fallbackUsed": false,
+      "totalAvailableAgents": 1,
+      "leadInfo": {
+        "phone": "+393520441984",
+        "name": "Test Lead 2"
+      }
+    },
+    {
+      "agentId": "493933",
+      "agentName": "Roberto Bondici",
+      "timestamp": "2025-09-24T15:41:04.824Z",
+      "reason": "SINGLE_AGENT_AVAILABLE",
+      "fallbackUsed": false,
+      "totalAvailableAgents": 1,
+      "leadInfo": {
+        "phone": "+393520441984",
+        "name": "Mario Rossi"
+      }
+    }
+  ]
+}

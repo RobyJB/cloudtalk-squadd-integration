@@ -41,49 +41,44 @@ class LeadToCallService {
       const timestamp = Date.now();
       const commandId = `ghl_lead_${leadData.id || timestamp}_${timestamp}`;
       
-      // Prepara dati contatto per CloudTalk Bulk API
+      // Fix: usa formato PUT API corretto per CloudTalk
+      const fullName = `${leadData.first_name || ''} ${leadData.last_name || ''}`.trim();
+      
       const contactData = {
-        action: 'add_contact',
-        command_id: commandId,
-        data: {
-          name: leadData.name || `${leadData.firstName || ''} ${leadData.lastName || ''}`.trim() || 'Lead Senza Nome',
-          email: leadData.email || '',
-          phone: leadData.phone || '',
-          company: leadData.company || 'GoHighLevel Lead',
-          title: leadData.title || '',
-          // Custom fields per tracciare origine
-          custom_fields: [
-            {
-              key: 'ghl_lead_id',
-              value: leadData.id || ''
-            },
-            {
-              key: 'lead_source',
-              value: 'GoHighLevel Webhook'
-            },
-            {
-              key: 'created_timestamp',
-              value: new Date().toISOString()
-            },
-            {
-              key: 'urgency',
-              value: 'IMMEDIATE_CALL'
-            }
-          ]
-        }
+        name: fullName || leadData.full_name || leadData.name || 'Lead Senza Nome',
+        company: leadData.company || 'GoHighLevel Lead',
+        ContactNumber: [
+          { public_number: leadData.phone || '' }
+        ],
+        ContactEmail: [
+          { email: leadData.email || '' }
+        ],
+        ContactsTag: [
+          { name: 'GHL Lead' },
+          { name: 'Immediate Call' }
+        ]
       };
 
-      log(`📝 Creando contatto in CloudTalk: ${contactData.data.name}`);
-      log(`📞 Telefono: ${contactData.data.phone}`);
-      log(`📧 Email: ${contactData.data.email}`);
+      log(`📝 Creando contatto in CloudTalk: ${contactData.name}`);
+      log(`📞 Telefono: ${contactData.ContactNumber?.[0]?.public_number || 'N/A'}`);
+      log(`📧 Email: ${contactData.ContactEmail?.[0]?.email || 'N/A'}`);
+      log(`✅ FORMATO PUT API CORRETTO!`);
+      
+      // DEBUG: Log del payload completo che viene inviato
+      console.log('🚨 DEBUG - PAYLOAD INVIATO A CLOUDTALK:');
+      console.log(JSON.stringify(contactData, null, 2));
 
-      const response = await makeCloudTalkRequest('/bulk/contacts.json', {
-        method: 'POST',
+      const response = await makeCloudTalkRequest('/contacts/add.json', {
+        method: 'PUT',
         body: JSON.stringify(contactData)
       });
+      
+      // DEBUG: Log della risposta completa
+      console.log('🚨 DEBUG - RISPOSTA CLOUDTALK:');
+      console.log(JSON.stringify(response, null, 2));
 
-      if (response?.data?.[0]?.status === 'success') {
-        const contactId = response.data[0]?.data?.contact_id;
+      if (response?.data?.id) {
+        const contactId = response.data.id;
         
         log(`✅ Contatto creato con successo: ID ${contactId}`);
         
@@ -91,7 +86,7 @@ class LeadToCallService {
           success: true,
           contactId: contactId,
           commandId: commandId,
-          cloudTalkData: response.data[0]
+          cloudTalkData: response.data
         };
       } else {
         throw new Error(`Creazione contatto fallita: ${JSON.stringify(response.data)}`);
@@ -185,14 +180,15 @@ class LeadToCallService {
     
     try {
       log(`🎯 INIZIO PROCESSO LEAD-TO-CALL: ${processId}`);
-      log(`📊 Lead: ${leadData.name || leadData.phone || 'Senza nome'}`);
+      log(`📊 Lead da chiamare: ${leadData.first_name} ${leadData.last_name} (${leadData.phone})`);
 
       if (!this.initialized) {
         await this.initialize();
       }
 
-      // Validazione dati lead
-      if (!leadData.phone) {
+      // Validazione dati lead - usa SOLO dati root level (il lead da chiamare)
+      const phoneNumber = leadData.phone;
+      if (!phoneNumber) {
         throw new Error('MISSING_PHONE: Numero telefono mancante nel lead');
       }
 
@@ -235,7 +231,7 @@ class LeadToCallService {
       log(`📞 STEP 3: Chiamata automatica via agente ${selectedAgent.name}`);
       result.steps.callInitiation = await this.makeAutomaticCall(
         selectedAgent.id,
-        leadData.phone,
+        phoneNumber,
         leadData
       );
 
@@ -247,7 +243,7 @@ class LeadToCallService {
         const processingTime = Date.now() - startTime;
         log(`✅ PROCESSO COMPLETATO CON SUCCESSO in ${processingTime}ms`);
         log(`👤 Agente: ${selectedAgent.name}`);
-        log(`📞 Chiamata iniziata per: ${leadData.phone}`);
+        log(`📞 Chiamata iniziata per: ${phoneNumber}`);
         
       } else {
         result.finalStatus = result.steps.callInitiation.error;
@@ -273,7 +269,11 @@ class LeadToCallService {
         success: false,
         finalStatus: 'PROCESS_ERROR',
         error: error.message,
-        steps: result?.steps || {},
+        steps: (typeof result !== 'undefined' && result?.steps) || {
+          contactCreation: null,
+          agentDistribution: null,
+          callInitiation: null
+        },
         processingTime: Date.now() - startTime
       };
       
@@ -285,57 +285,243 @@ class LeadToCallService {
   }
 
   /**
-   * Retry automatico per chiamate fallite
+   * Enhanced process with smart fallback for busy agents
+   * @param {Object} leadData Dati del lead da GHL
+   * @returns {Promise<Object>} Risultato completo con fallback info
+   */
+  async processLeadToCallEnhanced(leadData) {
+    const startTime = Date.now();
+    const processId = `enhanced_lead_${leadData.id || Date.now()}`;
+
+    try {
+      log(`🚀 INIZIO PROCESSO ENHANCED LEAD-TO-CALL: ${processId}`);
+      log(`📊 Lead da chiamare: ${leadData.first_name} ${leadData.last_name} (${leadData.phone})`);
+
+      if (!this.initialized) {
+        await this.initialize();
+      }
+
+      // Validate lead data
+      const phoneNumber = leadData.phone;
+      if (!phoneNumber) {
+        throw new Error('MISSING_PHONE: Numero telefono mancante nel lead');
+      }
+
+      const result = {
+        processId: processId,
+        startTime: new Date().toISOString(),
+        leadData: leadData,
+        steps: {
+          contactCreation: null,
+          agentDistribution: null,
+          callInitiation: null,
+          fallbackAttempts: []
+        },
+        success: false,
+        finalStatus: null,
+        enhancedInfo: {
+          fallbackUsed: false,
+          totalAgentsAttempted: 0,
+          busyAgentsSkipped: []
+        }
+      };
+
+      // STEP 1: Create contact in CloudTalk
+      log(`📝 STEP 1: Creazione contatto CloudTalk`);
+      result.steps.contactCreation = await this.createContactInCloudTalk(leadData);
+
+      if (!result.steps.contactCreation.success) {
+        result.finalStatus = 'CONTACT_CREATION_FAILED';
+        result.error = result.steps.contactCreation.error;
+        return result;
+      }
+
+      // STEP 2: Enhanced agent distribution with real-time call checking
+      log(`🎯 STEP 2: Enhanced Agent Distribution (Real-time + Round Robin)`);
+      result.steps.agentDistribution = await agentDistributionService.distributeLeadToAgent(leadData);
+
+      if (!result.steps.agentDistribution.success) {
+        result.finalStatus = result.steps.agentDistribution.error;
+        result.error = result.steps.agentDistribution.message;
+        result.enhancedInfo.fallbackUsed = result.steps.agentDistribution.fallbackInfo?.fallbackUsed || false;
+        return result;
+      }
+
+      const selectedAgent = result.steps.agentDistribution.selectedAgent;
+      result.enhancedInfo.fallbackUsed = result.steps.agentDistribution.fallbackInfo?.fallbackUsed || false;
+
+      // STEP 3: Attempt call with smart fallback
+      log(`📞 STEP 3: Enhanced Call Attempt (Primary: ${selectedAgent.name})`);
+
+      const callResult = await this.makeAutomaticCallWithFallback(
+        selectedAgent,
+        phoneNumber,
+        leadData,
+        result.steps.agentDistribution.distributionInfo.allAvailableAgents
+      );
+
+      result.steps.callInitiation = callResult.primaryAttempt;
+      result.steps.fallbackAttempts = callResult.fallbackAttempts || [];
+      result.enhancedInfo.totalAgentsAttempted = 1 + result.steps.fallbackAttempts.length;
+      result.enhancedInfo.busyAgentsSkipped = callResult.busyAgentsSkipped || [];
+
+      if (callResult.success) {
+        result.success = true;
+        result.finalStatus = 'CALL_INITIATED_SUCCESSFULLY';
+        result.selectedAgent = callResult.finalAgent;
+        result.enhancedInfo.finalAgentUsedFallback = callResult.usedFallback;
+
+        const processingTime = Date.now() - startTime;
+        log(`✅ ENHANCED PROCESSO COMPLETATO in ${processingTime}ms`);
+        log(`👤 Agente finale: ${callResult.finalAgent.name} ${callResult.usedFallback ? '(FALLBACK)' : '(PRIMARY)'}`);
+        log(`📞 Chiamata iniziata per: ${phoneNumber}`);
+
+      } else {
+        result.finalStatus = callResult.error || 'CALL_FAILED_ALL_AGENTS';
+        result.error = callResult.message || 'Tutti gli agenti hanno fallito';
+        result.selectedAgent = selectedAgent;
+      }
+
+      const processingTime = Date.now() - startTime;
+      result.processingTime = processingTime;
+
+      await leadTrackingLogger.logLeadProcess(result);
+
+      return result;
+
+    } catch (error) {
+      logError(`❌ ERRORE ENHANCED PROCESSO ${processId}:`, error);
+
+      const errorResult = {
+        processId: processId,
+        startTime: new Date().toISOString(),
+        leadData: leadData,
+        success: false,
+        finalStatus: 'PROCESS_ERROR',
+        error: error.message,
+        steps: (typeof result !== 'undefined' && result?.steps) || {
+          contactCreation: null,
+          agentDistribution: null,
+          callInitiation: null,
+          fallbackAttempts: []
+        },
+        enhancedInfo: {
+          fallbackUsed: false,
+          totalAgentsAttempted: 0,
+          busyAgentsSkipped: []
+        },
+        processingTime: Date.now() - startTime
+      };
+
+      await leadTrackingLogger.logLeadProcess(errorResult);
+      return errorResult;
+    }
+  }
+
+  /**
+   * Make call with automatic fallback to other agents if busy
+   * @param {Object} primaryAgent Agente primario selezionato
+   * @param {string} phoneNumber Numero da chiamare
+   * @param {Object} leadData Dati lead
+   * @param {Array} allAvailableAgents Lista tutti agenti disponibili per fallback
+   * @returns {Promise<Object>} Risultato con info fallback
+   */
+  async makeAutomaticCallWithFallback(primaryAgent, phoneNumber, leadData, allAvailableAgents) {
+    const result = {
+      success: false,
+      primaryAttempt: null,
+      fallbackAttempts: [],
+      busyAgentsSkipped: [],
+      usedFallback: false,
+      finalAgent: null,
+      error: null,
+      message: null
+    };
+
+    // Primary attempt
+    log(`📞 Tentativo PRIMARY: Agente ${primaryAgent.name} (${primaryAgent.id})`);
+    result.primaryAttempt = await this.makeAutomaticCall(primaryAgent.id, phoneNumber, leadData);
+
+    if (result.primaryAttempt.success) {
+      result.success = true;
+      result.finalAgent = primaryAgent;
+      result.usedFallback = false;
+      return result;
+    }
+
+    // If primary failed due to busy/unavailable, try fallback
+    if (result.primaryAttempt.error === 'AGENT_BUSY' || result.primaryAttempt.error === 'AGENT_NOT_AVAILABLE') {
+      log(`🔄 PRIMARY FALLITO (${result.primaryAttempt.error}), tentando fallback...`);
+
+      result.busyAgentsSkipped.push({
+        agentId: primaryAgent.id,
+        agentName: primaryAgent.name,
+        reason: result.primaryAttempt.error,
+        message: result.primaryAttempt.message
+      });
+
+      // Try other available agents
+      const fallbackCandidates = allAvailableAgents.filter(agent => agent.id !== primaryAgent.id);
+
+      for (let i = 0; i < fallbackCandidates.length && !result.success; i++) {
+        const fallbackAgent = fallbackCandidates[i];
+
+        log(`🔄 Tentativo FALLBACK ${i + 1}: Agente ${fallbackAgent.name} (${fallbackAgent.id})`);
+
+        const fallbackAttempt = await this.makeAutomaticCall(fallbackAgent.id, phoneNumber, leadData);
+
+        result.fallbackAttempts.push({
+          agent: fallbackAgent,
+          attempt: fallbackAttempt,
+          attemptNumber: i + 1
+        });
+
+        if (fallbackAttempt.success) {
+          result.success = true;
+          result.finalAgent = fallbackAgent;
+          result.usedFallback = true;
+          log(`✅ FALLBACK RIUSCITO! Agente ${fallbackAgent.name} ha preso la chiamata`);
+          return result;
+        } else if (fallbackAttempt.error === 'AGENT_BUSY' || fallbackAttempt.error === 'AGENT_NOT_AVAILABLE') {
+          result.busyAgentsSkipped.push({
+            agentId: fallbackAgent.id,
+            agentName: fallbackAgent.name,
+            reason: fallbackAttempt.error,
+            message: fallbackAttempt.message
+          });
+          log(`❌ FALLBACK ${i + 1} fallito (${fallbackAttempt.error}), provando prossimo...`);
+        } else {
+          log(`❌ FALLBACK ${i + 1} fallito per altro motivo: ${fallbackAttempt.message}`);
+        }
+      }
+
+      // All fallbacks failed
+      if (!result.success) {
+        result.error = 'ALL_AGENTS_BUSY_OR_FAILED';
+        result.message = `Tutti i ${1 + fallbackCandidates.length} agenti disponibili hanno fallito o sono occupati`;
+        log(`❌ TUTTI I FALLBACK FALLITI - Agenti tentati: ${1 + fallbackCandidates.length}`);
+      }
+    } else {
+      // Primary failed for other reasons (invalid phone, etc.)
+      result.error = result.primaryAttempt.error;
+      result.message = result.primaryAttempt.message;
+      log(`❌ PRIMARY fallito per motivo non-retry: ${result.primaryAttempt.error}`);
+    }
+
+    return result;
+  }
+
+  /**
+   * Retry automatico per chiamate fallite (legacy method, now uses enhanced logic)
    * @param {Object} failedResult Risultato precedente fallito
    * @param {number} maxRetries Numero massimo retry
    * @returns {Promise<Object>} Risultato retry
    */
   async retryFailedCall(failedResult, maxRetries = 2) {
-    if (!failedResult.selectedAgent || !failedResult.leadData) {
-      return {
-        success: false,
-        error: 'INVALID_RETRY_DATA',
-        message: 'Dati insufficienti per retry'
-      };
-    }
+    log(`🔄 Using enhanced retry logic instead of legacy retry...`);
 
-    log(`🔄 Tentativo retry chiamata per ${failedResult.leadData.phone}`);
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      log(`🔁 Retry tentativo ${attempt}/${maxRetries}`);
-
-      // Riseleziona agente (potrebbe essere cambiata la disponibilità)
-      const redistribution = await agentDistributionService.distributeLeadToAgent(failedResult.leadData);
-      
-      if (!redistribution.success) {
-        log(`❌ Retry ${attempt}: Nessun agente disponibile`);
-        continue;
-      }
-
-      const retryResult = await this.makeAutomaticCall(
-        redistribution.selectedAgent.id,
-        failedResult.leadData.phone,
-        failedResult.leadData
-      );
-
-      if (retryResult.success) {
-        log(`✅ Retry ${attempt} riuscito!`);
-        return {
-          success: true,
-          retryAttempt: attempt,
-          selectedAgent: redistribution.selectedAgent,
-          callResult: retryResult
-        };
-      }
-
-      log(`❌ Retry ${attempt} fallito: ${retryResult.message}`);
-    }
-
-    return {
-      success: false,
-      error: 'MAX_RETRIES_EXCEEDED',
-      message: `Tutti i ${maxRetries} tentativi di retry falliti`
-    };
+    // Use enhanced process instead of legacy retry
+    return await this.processLeadToCallEnhanced(failedResult.leadData);
   }
 
   /**

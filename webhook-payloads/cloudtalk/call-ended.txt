@@ -289,3 +289,321 @@ PAYLOAD:
 
 ==============================
 
+
+=== WEBHOOK RECEIVED: 2025-09-25T13:24:14.533Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "124"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": "test-missed-123",
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "talking_time": 0,
+  "waiting_time": 15
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T13:37:29.737Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "127"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": "test-answered-456",
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "talking_time": 45,
+  "waiting_time": 10
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T13:37:45.585Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "124"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": "test-missed-789",
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "talking_time": 0,
+  "waiting_time": 20
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T13:38:33.737Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "123"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": "test-final-123",
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "talking_time": 0,
+  "waiting_time": 25
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T13:41:10.110Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "127"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": "test-new-logic-456",
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "talking_time": 0,
+  "waiting_time": 30
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T13:41:29.641Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "126"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": "test-answered-789",
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "talking_time": 60,
+  "waiting_time": 5
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T13:56:02.042Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "239"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_uuid": "34bea7f7-817a-4bea-9bd8-d5ab417bda59",
+  "internal_number": 393520441984,
+  "contact_id": 1451646073,
+  "agent_id": 493933,
+  "external_number": 393513416607,
+  "# di tentativi di chiamata": 103,
+  "call_id": 1013012637
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T13:58:31.746Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "239"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_uuid": "34bea7f7-817a-4bea-9bd8-d5ab417bda59",
+  "internal_number": 393520441984,
+  "contact_id": 1451646073,
+  "agent_id": 493933,
+  "external_number": 393513416607,
+  "# di tentativi di chiamata": 103,
+  "call_id": 1013012637
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T14:16:31.358Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "281"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": 1013012637,
+  "call_uuid": "34bea7f7-817a-4bea-9bd8-d5ab417bda59",
+  "internal_number": 393520441984,
+  "contact_id": 1451646073,
+  "agent_id": 493933,
+  "external_number": "393513416607",
+  "# di tentativi di chiamata": 103
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T14:16:50.202Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "166"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": "test-missed-123",
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "talking_time": 0,
+  "waiting_time": 15
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T14:21:26.011Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "166"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": "test-clean-123",
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "talking_time": 0,
+  "waiting_time": 10
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T14:22:56.698Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "165"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": "test-final-999",
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "talking_time": 0,
+  "waiting_time": 8
+}
+
+==============================
+

@@ -488,66 +488,18 @@ async function processCallEnded(contact, payload) {
 
   const result = await addNoteToGHLContact(contact.id, noteText);
 
-  // NUOVO: Invia webhook a GoHighLevel dopo aver creato la nota
-  let webhookResult = null;
-  try {
-    const ghlWebhookUrl = 'https://services.leadconnectorhq.com/hooks/DfxGoORmPoL5Z1OcfYJM/webhook-trigger/873baa5c-928e-428a-ac68-498d954a9ff7';
+  // REMOVED: Duplicate GHL webhook sending
+  // This was causing DOUBLE webhook sending when used with handleCallEndedWebhook()
+  // The GHL webhook forwarding is now handled exclusively in cloudtalk-webhooks.js
+  // to prevent duplication issues reported by the user.
 
-    const webhookPayload = {
-      event_type: 'cloudtalk_call_ended',
-      timestamp: new Date().toISOString(),
-      call_uuid: payload.call_uuid,
-      call_id: payload.call_id,
-      internal_number: payload.internal_number,
-      external_number: payload.external_number,
-      agent_id: payload.agent_id,
-      agent_first_name: payload.agent_first_name,
-      agent_last_name: payload.agent_last_name,
-      contact_id: payload.contact_id,
-      talking_time: payload.talking_time,
-      waiting_time: payload.waiting_time,
-      call_attempts: payload['# di tentativi di chiamata'] || payload.call_attempts,
-      duration: duration,
-      status: status,
-      is_no_answer: isNoAnswer,
-      note_created: true,
-      note_id: result.id,
-      ghl_contact_id: contact.id,
-      source: 'cloudtalk_middleware'
-    };
+  console.log('📝 Note created in GHL, webhook forwarding handled by main webhook handler');
 
-    console.log(`📤 Inviando webhook a GHL: ${ghlWebhookUrl}`);
-    console.log(`📋 Payload webhook: ${JSON.stringify(webhookPayload, null, 2)}`);
-
-    const ghlResponse = await fetch(ghlWebhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'CloudTalk-Middleware/1.0'
-      },
-      body: JSON.stringify(webhookPayload)
-    });
-
-    if (ghlResponse.ok) {
-      const responseData = await ghlResponse.text();
-      webhookResult = {
-        success: true,
-        response: responseData
-      };
-      console.log(`✅ Webhook GHL inviato con successo: ${ghlResponse.status}`);
-      console.log(`📨 Risposta GHL: ${responseData}`);
-    } else {
-      const errorText = await ghlResponse.text();
-      throw new Error(`GHL webhook failed: ${ghlResponse.status} - ${errorText}`);
-    }
-
-  } catch (webhookError) {
-    console.error(`❌ Errore invio webhook GHL: ${webhookError.message}`);
-    webhookResult = {
-      success: false,
-      error: webhookError.message
-    };
-  }
+  const webhookResult = {
+    success: false,
+    skipped: true,
+    reason: 'GHL webhook forwarding moved to primary webhook handler to prevent duplication'
+  };
 
   return {
     action: action,

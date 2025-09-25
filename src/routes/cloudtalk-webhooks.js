@@ -3,6 +3,7 @@ import { processCloudTalkWebhook } from '../../API Squadd/webhook-to-ghl-process
 import { logRequest, logError, log } from '../logger.js';
 import { saveWebhookPayload } from '../utils/webhook-payload-logger.js';
 import { isWebhookAlreadyProcessed, markWebhookAsProcessed } from '../utils/webhook-deduplication.js';
+import { validateAndEnhanceWebhookPayload, extractDeduplicationKey, logValidationSummary } from '../utils/webhook-validation.js';
 import { processCallEndedWebhook } from '../services/cloudtalk-campaign-automation.js';
 import googleSheetsService from '../services/google-sheets-service.js';
 
@@ -11,7 +12,7 @@ const router = express.Router();
 // CloudTalk Webhooks → GHL Integration
 
 /**
- * Generic webhook processor
+ * Generic webhook processor with enhanced validation
  */
 async function handleWebhook(req, res, webhookType) {
   const timestamp = new Date().toISOString();
@@ -20,20 +21,44 @@ async function handleWebhook(req, res, webhookType) {
   log(`📡 Headers: ${JSON.stringify(req.headers, null, 2)}`);
   log(`📋 Payload: ${JSON.stringify(req.body, null, 2)}`);
 
-  // Check for duplicate webhook
-  const callId = req.body.call_id || req.body.Call_id;
-  if (callId && isWebhookAlreadyProcessed(callId, webhookType)) {
-    log(`🔄 Skipping duplicate webhook: ${callId}_${webhookType}`);
+  // STEP 1: Validate and enhance webhook payload
+  const validation = validateAndEnhanceWebhookPayload(req.body, webhookType);
+  logValidationSummary(validation, webhookType);
+
+  // Use enhanced payload for processing
+  const enhancedPayload = validation.enhancedPayload;
+
+  // STEP 2: Check for duplicate webhook using validated data
+  const deduplicationKey = extractDeduplicationKey(enhancedPayload, webhookType);
+  const callId = enhancedPayload.call_id; // This is guaranteed to exist after validation
+
+  if (isWebhookAlreadyProcessed(callId, webhookType)) {
+    log(`🔄 Skipping duplicate webhook: ${deduplicationKey}`);
     return res.json({
       success: true,
       message: 'Webhook already processed (duplicate)',
       callId: callId,
       webhookType: webhookType,
+      timestamp: timestamp,
+      deduplicationKey: deduplicationKey,
+      validationWarnings: validation.warnings
+    });
+  }
+
+  // STEP 3: Reject invalid webhooks (optional - can be made permissive)
+  if (!validation.isValid) {
+    logError(`❌ Rejecting invalid webhook: ${validation.errors.join(', ')}`);
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid webhook payload',
+      validationErrors: validation.errors,
+      validationWarnings: validation.warnings,
+      webhookType: webhookType,
       timestamp: timestamp
     });
   }
 
-  // Save webhook payload to JSON file
+  // STEP 4: Save webhook payload to JSON file (save original payload for debugging)
   const saveResult = await saveWebhookPayload('cloudtalk', webhookType, req.body, req.headers);
   if (saveResult.success) {
     log(`💾 Payload salvato in: ${saveResult.filepath}`);
@@ -42,8 +67,9 @@ async function handleWebhook(req, res, webhookType) {
   }
 
   try {
-    // Process webhook with our GHL integration
-    const result = await processCloudTalkWebhook(req.body, webhookType);
+    // STEP 5: Process webhook with our GHL integration using ENHANCED payload
+    log(`🔄 Processing with enhanced payload (call_id: ${enhancedPayload.call_id})`);
+    const result = await processCloudTalkWebhook(enhancedPayload, webhookType);
 
     if (result.success) {
       // Mark webhook as processed to prevent duplicates
@@ -88,29 +114,39 @@ async function handleWebhook(req, res, webhookType) {
 /**
  * Handler specializzato per webhook call-ended con Campaign Automation
  * Integra il processo esistente con la logica di progressione campagne
+ * UPDATED: Now uses enhanced validation to prevent undefined call_id issues
  */
 async function handleCallEndedWebhook(req, res) {
   const timestamp = new Date().toISOString();
   const webhookType = 'call-ended';
-  
-  // Estrai correlation ID per il tracking
-  const correlationId = req.body.call_uuid || req.body.call_id || req.body.Call_id || `webhook_${Date.now()}`;
-  
-  log(`📞 [${timestamp}] CloudTalk Webhook: CALL-ENDED (New Logic)`);
-  log(`🔗 Correlation ID: ${correlationId}`);
+
+  log(`📞 [${timestamp}] CloudTalk Webhook: CALL-ENDED (Analytics API Logic)`);
   log(`📡 Headers: ${JSON.stringify(req.headers, null, 2)}`);
   log(`📋 Payload: ${JSON.stringify(req.body, null, 2)}`);
 
-  // Check for duplicate webhook
-  const callId = req.body.call_id || req.body.Call_id || req.body.call_uuid;
-  if (callId && isWebhookAlreadyProcessed(callId, webhookType)) {
-    log(`🔄 Skipping duplicate webhook: ${callId}_${webhookType}`);
+  // STEP 1: Validate and enhance webhook payload
+  const validation = validateAndEnhanceWebhookPayload(req.body, webhookType);
+  logValidationSummary(validation, webhookType);
+
+  // Use enhanced payload for processing
+  const enhancedPayload = validation.enhancedPayload;
+  const correlationId = enhancedPayload._correlationId;
+
+  log(`🔗 Enhanced Correlation ID: ${correlationId}`);
+
+  // STEP 2: Check for duplicate webhook using validated data
+  const deduplicationKey = extractDeduplicationKey(enhancedPayload, webhookType);
+  const callId = enhancedPayload.call_id; // Guaranteed to exist after validation
+
+  if (isWebhookAlreadyProcessed(callId, webhookType)) {
+    log(`🔄 Skipping duplicate webhook: ${deduplicationKey}`);
     return res.json({
       success: true,
       message: 'Webhook already processed (duplicate)',
       callId: callId,
       webhookType: webhookType,
-      timestamp: timestamp
+      timestamp: timestamp,
+      deduplicationKey: deduplicationKey
     });
   }
 
@@ -123,42 +159,57 @@ async function handleCallEndedWebhook(req, res) {
   }
 
   try {
-    // 🆕 NUOVA LOGICA: Verifica se la chiamata è missed o answered
-    const talkingTime = req.body.talking_time;
-    const isMissedCall = !talkingTime || talkingTime === 0;
+    // 🆕 ANALYTICS API LOGIC: Get real call status from CloudTalk Analytics API
+    log(`🔍 Analyzing call using CloudTalk Analytics API...`);
+    const { analyzeCall } = await import('../services/cloudtalk-analytics-service.js');
+    const callAnalysis = await analyzeCall(enhancedPayload);
     
-    log(`🔍 Call status analysis:`);
-    log(`   - Talking time: ${talkingTime}`);
-    log(`   - Is missed call: ${isMissedCall}`);
+    log(`📊 Call analysis result:`);
+    log(`   - Success: ${callAnalysis.success}`);
+    log(`   - Status: ${callAnalysis.status}`);
+    log(`   - Is missed: ${callAnalysis.isMissed}`);
+    log(`   - Reason: ${callAnalysis.reason}`);
+    if (callAnalysis.fallback) {
+      log(`   ⚠️ Used fallback logic due to: ${callAnalysis.analyticsError}`);
+    }
+
+    const isMissedCall = callAnalysis.isMissed;
+    const callStatus = callAnalysis.status;
 
     if (isMissedCall) {
       // ❌ CHIAMATA PERSA: Invia webhook a GHL + Campaign Automation
-      log(`❌ MISSED CALL detected - Processing with GHL webhook`);
+      log(`❌ MISSED CALL detected (${callStatus}) - Processing with GHL webhook`);
       
       // 1. PRIMA: Invia webhook a GoHighLevel
       let ghlWebhookResult = null;
       try {
         const ghlWebhookUrl = 'https://services.leadconnectorhq.com/hooks/DfxGoORmPoL5Z1OcfYJM/webhook-trigger/873baa5c-928e-428a-ac68-498d954a9ff7';
         
-        // Prepara payload per GHL con tutti i dati della chiamata
+        // Prepara payload per GHL con tutti i dati della chiamata + analytics data
         const ghlPayload = {
           event_type: 'cloudtalk_call_ended',
           call_type: 'missed',
           timestamp: timestamp,
-          call_uuid: req.body.call_uuid,
-          call_id: req.body.call_id,
-          internal_number: req.body.internal_number,
-          external_number: req.body.external_number,
-          agent_id: req.body.agent_id,
-          agent_first_name: req.body.agent_first_name,
-          agent_last_name: req.body.agent_last_name,
-          contact_id: req.body.contact_id,
-          talking_time: req.body.talking_time || 0,
-          waiting_time: req.body.waiting_time,
-          call_attempts: req.body['# di tentativi di chiamata'] || req.body.call_attempts,
+          call_uuid: enhancedPayload.call_uuid,
+          call_id: enhancedPayload.call_id,
+          internal_number: enhancedPayload.internal_number,
+          external_number: enhancedPayload.external_number,
+          agent_id: enhancedPayload.agent_id,
+          agent_first_name: enhancedPayload.agent_first_name,
+          agent_last_name: enhancedPayload.agent_last_name,
+          contact_id: enhancedPayload.contact_id,
+          call_attempts: enhancedPayload['# di tentativi di chiamata'] || enhancedPayload.call_attempts,
           is_missed_call: true,
           webhook_received_at: timestamp,
-          source: 'cloudtalk_middleware'
+          source: 'cloudtalk_middleware',
+          // Analytics data
+          cloudtalk_status: callAnalysis.status,
+          talking_time: callAnalysis.talkingTime || 0,
+          total_time: callAnalysis.totalTime || 0,
+          direction: callAnalysis.direction,
+          recorded: callAnalysis.recorded,
+          analytics_success: callAnalysis.success,
+          validation_applied: validation.warnings.length > 0 ? validation.warnings : null
         };
         
         log(`📤 Inviando webhook a GHL per MISSED CALL: ${ghlWebhookUrl}`);
@@ -196,10 +247,10 @@ async function handleCallEndedWebhook(req, res) {
         };
       }
 
-      // 2. SECONDA: Esegui Campaign Automation (priorità alta)
+      // 2. SECONDA: Esegui Campaign Automation (priorità alta) using enhanced payload
       let campaignResult = null;
       try {
-        campaignResult = await processCallEndedWebhook(req.body, correlationId);
+        campaignResult = await processCallEndedWebhook(enhancedPayload, correlationId);
         
         if (campaignResult.success) {
           log(`✅ Campaign Automation completata con successo per MISSED CALL!`);
@@ -226,37 +277,22 @@ async function handleCallEndedWebhook(req, res) {
           retryable: true
         });
       }
-      
-      // 3. TERZA: Esegui processo esistente GHL (priorità bassa)
-      let ghlResult = null;
-      try {
-        ghlResult = await processCloudTalkWebhook(req.body, webhookType);
-        
-        if (ghlResult.success) {
-          log(`✅ GHL Integration completata con successo per MISSED CALL!`);
-        } else {
-          log(`⚠️ GHL Integration fallita: ${ghlResult.error || ghlResult.reason}`);
-        }
-        
-      } catch (ghlError) {
-        logError(`❌ GHL Integration error (non-critical): ${ghlError.message}`);
-        // GHL errors non bloccano il processo
-      }
-      
-      // 4. Mark webhook as processed (solo se campaign automation ok)
+
+      // 3. Mark webhook as processed (solo se campaign automation ok)
       if (callId) {
         markWebhookAsProcessed(callId, webhookType);
       }
 
-      // 5. Risposta finale per MISSED CALL
+      // 4. Risposta finale per MISSED CALL
       const response = {
         success: true,
         call_type: 'missed',
+        call_status: callStatus,
         message: 'MISSED CALL processed with GHL webhook forwarding and Campaign Automation',
         timestamp: timestamp,
+        analytics: callAnalysis,
         ghlWebhookForwarding: ghlWebhookResult || { success: false, reason: 'Not processed' },
-        campaignAutomation: campaignResult || { success: false, reason: 'Not processed' },
-        ghlIntegration: ghlResult || { success: false, reason: 'Not processed' }
+        campaignAutomation: campaignResult || { success: false, reason: 'Not processed' }
       };
       
       // Include contact info if available from campaign automation
@@ -268,13 +304,13 @@ async function handleCallEndedWebhook(req, res) {
       res.json(response);
       
     } else {
-      // ✅ CHIAMATA RISPOSTA: Non inviare webhook, solo Campaign Automation
-      log(`✅ ANSWERED CALL detected - Processing WITHOUT GHL webhook`);
+      // ✅ CHIAMATA RISPOSTA: Solo Campaign Automation, aspetta recording
+      log(`✅ ANSWERED CALL detected (${callStatus}) - Processing WITHOUT GHL webhook, waiting for recording`);
       
-      // Esegui solo Campaign Automation (senza webhook GHL)
+      // 1. Esegui solo Campaign Automation (senza webhook GHL) using enhanced payload
       let campaignResult = null;
       try {
-        campaignResult = await processCallEndedWebhook(req.body, correlationId);
+        campaignResult = await processCallEndedWebhook(enhancedPayload, correlationId);
         
         if (campaignResult.success) {
           log(`✅ Campaign Automation completata con successo per ANSWERED CALL!`);
@@ -302,20 +338,21 @@ async function handleCallEndedWebhook(req, res) {
         });
       }
       
-      // Mark webhook as processed (solo se campaign automation ok)
+      // 2. Mark webhook as processed (solo se campaign automation ok)
       if (callId) {
         markWebhookAsProcessed(callId, webhookType);
       }
 
-      // Risposta finale per ANSWERED CALL (senza GHL webhook)
+      // 3. Risposta finale per ANSWERED CALL (senza GHL webhook, aspetta recording)
       const response = {
         success: true,
         call_type: 'answered',
+        call_status: callStatus,
         message: 'ANSWERED CALL processed - waiting for recording (no GHL webhook sent)',
         timestamp: timestamp,
+        analytics: callAnalysis,
         ghlWebhookForwarding: { success: false, reason: 'Skipped for answered calls' },
-        campaignAutomation: campaignResult || { success: false, reason: 'Not processed' },
-        ghlIntegration: { success: false, reason: 'Skipped for answered calls' }
+        campaignAutomation: campaignResult || { success: false, reason: 'Not processed' }
       };
       
       // Include contact info if available from campaign automation
@@ -342,29 +379,39 @@ async function handleCallEndedWebhook(req, res) {
 /**
  * Handler specializzato per webhook call-started con Google Sheets integration
  * Integra il processo esistente con il tracking in tempo reale
+ * UPDATED: Now uses enhanced validation to prevent undefined call_id issues
  */
 async function handleCallStartedWebhook(req, res) {
   const timestamp = new Date().toISOString();
   const webhookType = 'call-started';
 
-  // Estrai correlation ID per il tracking
-  const correlationId = req.body.call_uuid || req.body.call_id || req.body.Call_id || `webhook_${Date.now()}`;
-
-  log(`📞 [${timestamp}] CloudTalk Webhook: CALL-STARTED (Google Sheets Integration)`);
-  log(`🔗 Correlation ID: ${correlationId}`);
+  log(`📞 [${timestamp}] CloudTalk Webhook: CALL-STARTED (Google Sheets Only)`);
   log(`📡 Headers: ${JSON.stringify(req.headers, null, 2)}`);
   log(`📋 Payload: ${JSON.stringify(req.body, null, 2)}`);
 
-  // Check for duplicate webhook
-  const callId = req.body.call_id || req.body.Call_id || req.body.call_uuid;
-  if (callId && isWebhookAlreadyProcessed(callId, webhookType)) {
-    log(`🔄 Skipping duplicate webhook: ${callId}_${webhookType}`);
+  // STEP 1: Validate and enhance webhook payload
+  const validation = validateAndEnhanceWebhookPayload(req.body, webhookType);
+  logValidationSummary(validation, webhookType);
+
+  // Use enhanced payload for processing
+  const enhancedPayload = validation.enhancedPayload;
+  const correlationId = enhancedPayload._correlationId;
+
+  log(`🔗 Enhanced Correlation ID: ${correlationId}`);
+
+  // STEP 2: Check for duplicate webhook using validated data
+  const deduplicationKey = extractDeduplicationKey(enhancedPayload, webhookType);
+  const callId = enhancedPayload.call_id; // Guaranteed to exist after validation
+
+  if (isWebhookAlreadyProcessed(callId, webhookType)) {
+    log(`🔄 Skipping duplicate webhook: ${deduplicationKey}`);
     return res.json({
       success: true,
       message: 'Webhook already processed (duplicate)',
       callId: callId,
       webhookType: webhookType,
-      timestamp: timestamp
+      timestamp: timestamp,
+      deduplicationKey: deduplicationKey
     });
   }
 
@@ -377,64 +424,61 @@ async function handleCallStartedWebhook(req, res) {
   }
 
   try {
-    // 1. PRIMA: Insert Google Sheets row per call started
+    // 🎯 UNICO SCOPO: Invia a Google Sheets endpoint per creare riga iniziale
     let googleSheetsResult = null;
     try {
-      await googleSheetsService.insertCallStarted(req.body);
+      const googleSheetsUrl = 'https://webhooks.squaddcrm.com/api/google-sheets-webhooks/call-data';
+      
+      log(`📤 Inviando call-started a Google Sheets: ${googleSheetsUrl}`);
+      log(`📋 Payload per Google Sheets: ${JSON.stringify(enhancedPayload, null, 2)}`);
+      
+      const googleSheetsResponse = await fetch(googleSheetsUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'CloudTalk-Middleware/1.0'
+        },
+        body: JSON.stringify(enhancedPayload)
+      });
 
-      googleSheetsResult = {
-        success: true,
-        message: 'Call started tracked in Google Sheets'
-      };
-
-      log(`📊 Call started tracked in Google Sheets: ${req.body.call_uuid}`);
+      if (googleSheetsResponse.ok) {
+        const responseData = await googleSheetsResponse.text();
+        googleSheetsResult = {
+          success: true,
+          message: 'Call started row created in Google Sheets',
+          response: responseData
+        };
+        log(`✅ Google Sheets call-started inviato con successo: ${googleSheetsResponse.status}`);
+      } else {
+        const errorText = await googleSheetsResponse.text();
+        throw new Error(`Google Sheets webhook failed: ${googleSheetsResponse.status} - ${errorText}`);
+      }
 
     } catch (googleSheetsError) {
-      logError(`❌ Google Sheets insert failed: ${googleSheetsError.message}`);
+      logError(`❌ Google Sheets call-started failed: ${googleSheetsError.message}`);
 
       googleSheetsResult = {
         success: false,
         error: googleSheetsError.message,
-        message: 'Google Sheets tracking failed but call processing continues'
+        message: 'Google Sheets call-started failed'
       };
     }
 
-    // 2. DOPO: Esegui processo esistente GHL (priorità normale)
-    let ghlResult = null;
-    try {
-      ghlResult = await processCloudTalkWebhook(req.body, webhookType);
-
-      if (ghlResult.success) {
-        log(`✅ GHL Integration completata con successo!`);
-      } else {
-        log(`⚠️ GHL Integration fallita: ${ghlResult.error || ghlResult.reason}`);
-      }
-
-    } catch (ghlError) {
-      logError(`❌ GHL Integration error (non-critical): ${ghlError.message}`);
-      // GHL errors non bloccano il processo
-    }
-
-    // 3. Mark webhook as processed
+    // Mark webhook as processed
     if (callId) {
       markWebhookAsProcessed(callId, webhookType);
     }
 
-    // 4. Risposta finale
+    // Risposta finale - SOLO Google Sheets, niente GHL
     const response = {
       success: true,
-      message: 'CloudTalk call-started webhook processed with Google Sheets tracking',
+      message: 'Call-started webhook sent to Google Sheets only (no GHL processing)',
       timestamp: timestamp,
-      googleSheetsTracking: googleSheetsResult || { success: false, reason: 'Not processed' },
-      ghlIntegration: ghlResult || { success: false, reason: 'Not processed' }
+      googleSheetsResult: googleSheetsResult || { success: false, reason: 'Not processed' },
+      ghlProcessing: { success: false, reason: 'Intentionally skipped for call-started' }
     };
 
-    // Include contact info if available from GHL integration
-    if (ghlResult?.contact) {
-      response.contact = ghlResult.contact;
-    }
-
-    log(`🎉 Call-started webhook processing completed successfully!`);
+    log(`🎉 Call-started webhook completed - Google Sheets only!`);
     res.json(response);
 
   } catch (error) {

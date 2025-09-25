@@ -48,3 +48,26 @@ PAYLOAD:
 
 ==============================
 
+
+=== WEBHOOK RECEIVED: 2025-09-25T13:24:01.999Z ===
+Provider: cloudtalk
+Webhook Type: call-started
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "55"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "external_number": "393513416607",
+  "agent_id": 493933
+}
+
+==============================
+

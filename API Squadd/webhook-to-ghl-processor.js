@@ -232,10 +232,8 @@ async function processRecordingReady(contact, payload) {
       if (uploadResult.success) {
         console.log('✅ Audio uploaded successfully to conversation!');
 
-        // Add success note
-        noteText = `✔︎ Conversazione effettuata
-
-${formatTranscriptionForGHL(transcription.result)}`;
+        // Add success note (formatTranscriptionForGHL already includes correct checkmark)
+        noteText = formatTranscriptionForGHL(transcription.result);
 
         const result = await addNoteToGHLContact(contact.id, noteText);
 

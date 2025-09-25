@@ -451,6 +451,9 @@ async function processCallStarted(contact, payload) {
 /**
  * Process call ended webhook
  */
+/**
+ * Process call ended webhook
+ */
 async function processCallEnded(contact, payload) {
   console.log('📞 Processing call ended...');
 
@@ -479,7 +482,7 @@ async function processCallEnded(contact, payload) {
     action = 'no_answer_logged';
   } else {
     // Chiamata effettivamente terminata
-    noteText = `📞 CHIAMATA TERMINATA - CLOUDTALK\\n\\n📞 Call ID: ${callId}\\n📱 Numero: ${payload.external_number}\\n👤 Agente: ${payload.agent_name || payload.agent_id || 'N/A'}\\n⏱️ Durata: ${duration}\\n📊 Stato: ${status}\\n🕐 Ora fine: ${new Date().toLocaleString('it-IT')}\\n\\n✅ Chiamata completata`;
+    noteText = `📞 CHIAMATA TERMINATA - CLOUDTALK\n\n📞 Call ID: ${callId}\n📱 Numero: ${payload.external_number}\n👤 Agente: ${payload.agent_name || payload.agent_id || 'N/A'}\n⏱️ Durata: ${duration}\n📊 Stato: ${status}\n🕐 Ora fine: ${new Date().toLocaleString('it-IT')}\n\n✅ Chiamata completata`;
     action = 'call_end_logged';
   }
 

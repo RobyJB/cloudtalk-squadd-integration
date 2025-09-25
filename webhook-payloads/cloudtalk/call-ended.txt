@@ -675,3 +675,55 @@ PAYLOAD:
 
 ==============================
 
+
+=== WEBHOOK RECEIVED: 2025-09-25T15:47:31.646Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "147"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": "test-final-fix",
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "talking_time": 0,
+  "waiting_time": 15
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T15:50:30.532Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "151"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_id": "test-final-working",
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "talking_time": 0,
+  "waiting_time": 15
+}
+
+==============================
+

@@ -2,6 +2,7 @@ import { getContacts } from '../../API CloudTalk/GET/get-contacts.js';
 import { getContactDetails } from '../../API CloudTalk/GET/get-contact-details.js';
 import { getCampaigns } from '../../API CloudTalk/GET/get-campaigns.js';
 import { editContact } from '../../API CloudTalk/POST/post-edit-contact.js';
+import { searchGHLContactByPhone } from '../../API Squadd/tests/search-contact-by-phone.js';
 import { log, logError } from '../logger.js';
 import fs from 'fs';
 import path from 'path';
@@ -191,7 +192,7 @@ async function getContactByPhone(phone, correlationId) {
   });
   
   try {
-    // Cerca per numero esatto
+    // Cerca per numero esatto nelle API CloudTalk (per Campaign Automation)
     const response = await getContacts({ keyword: normalizedPhone, limit: 10 });
     
     if (response?.responseData?.data) {

@@ -267,7 +267,17 @@ async function handleCallEndedWebhook(req, res) {
             const noteText = '📵 TENTATIVO SENZA RISPOSTA - CLOUDTALK';
             log(`📝 Creando nota per MISSED CALL: "${noteText}"`);
 
-            const noteResult = await addNoteToGHLContact(campaignResult.contact.id, noteText);
+            // Trova il contatto GHL per creare la nota (separato da Campaign Automation)
+            const phoneNumber = enhancedPayload.external_number;
+            const { searchGHLContactByPhone } = await import('../../API Squadd/tests/search-contact-by-phone.js');
+            const ghlContact = await searchGHLContactByPhone(phoneNumber);
+
+            if (!ghlContact) {
+              throw new Error(`Contatto GHL non trovato per ${phoneNumber}`);
+            }
+
+            log(`📞 Contatto GHL trovato: ${ghlContact.firstName} ${ghlContact.lastName} (${ghlContact.id})`);
+            const noteResult = await addNoteToGHLContact(ghlContact.id, noteText);
 
             if (noteResult && noteResult.id) {
               log(`✅ Nota creata con successo per MISSED CALL! ID: ${noteResult.id}`);

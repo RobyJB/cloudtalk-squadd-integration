@@ -540,13 +540,13 @@ ${transcription}
 
   // Check if this is a non-substantial call
   if (analysis.call_type === 'non_sostanziosa') {
-    return `📞 CHIAMATA NON AVVENUTA
+    return `✔︎ Risposto - conversazione non avvenuta
 
-📋 ${analysis.call_summary || 'Chiamata tecnica o senza dialogo commerciale'}
+📋 Riassunto:
+${analysis.call_summary || 'Chiamata tecnica o senza dialogo commerciale'}
 
-📝 Trascrizione: ${transcription}
-
-⏰ Elaborata: ${new Date(processedAt).toLocaleString('it-IT')}`;
+📝 Trascrizione:
+${transcription}`;
   }
 
   // Full analysis format for substantial calls

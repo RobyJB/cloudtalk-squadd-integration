@@ -96,7 +96,7 @@ async function handleCallEndedWebhook(req, res) {
   // Estrai correlation ID per il tracking
   const correlationId = req.body.call_uuid || req.body.call_id || req.body.Call_id || `webhook_${Date.now()}`;
   
-  log(`📞 [${timestamp}] CloudTalk Webhook: CALL-ENDED (Campaign Automation)`);
+  log(`📞 [${timestamp}] CloudTalk Webhook: CALL-ENDED (New Logic)`);
   log(`🔗 Correlation ID: ${correlationId}`);
   log(`📡 Headers: ${JSON.stringify(req.headers, null, 2)}`);
   log(`📋 Payload: ${JSON.stringify(req.body, null, 2)}`);
@@ -123,135 +123,209 @@ async function handleCallEndedWebhook(req, res) {
   }
 
   try {
-    // 1. PRIMA: Invia webhook a GoHighLevel
-    let ghlWebhookResult = null;
-    try {
-      const ghlWebhookUrl = 'https://services.leadconnectorhq.com/hooks/DfxGoORmPoL5Z1OcfYJM/webhook-trigger/873baa5c-928e-428a-ac68-498d954a9ff7';
-      
-      // Prepara payload per GHL con tutti i dati della chiamata
-      const ghlPayload = {
-        event_type: 'cloudtalk_call_ended',
-        timestamp: timestamp,
-        call_uuid: req.body.call_uuid,
-        call_id: req.body.call_id,
-        internal_number: req.body.internal_number,
-        external_number: req.body.external_number,
-        agent_id: req.body.agent_id,
-        agent_first_name: req.body.agent_first_name,
-        agent_last_name: req.body.agent_last_name,
-        contact_id: req.body.contact_id,
-        talking_time: req.body.talking_time,
-        waiting_time: req.body.waiting_time,
-        call_attempts: req.body['# di tentativi di chiamata'] || req.body.call_attempts,
-        webhook_received_at: timestamp,
-        source: 'cloudtalk_middleware'
-      };
-      
-      log(`📤 Inviando webhook a GHL: ${ghlWebhookUrl}`);
-      log(`📋 Payload GHL: ${JSON.stringify(ghlPayload, null, 2)}`);
-      
-      const ghlResponse = await fetch(ghlWebhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'CloudTalk-Middleware/1.0'
-        },
-        body: JSON.stringify(ghlPayload)
-      });
-      
-      if (ghlResponse.ok) {
-        const ghlResponseData = await ghlResponse.text();
-        ghlWebhookResult = {
-          success: true,
-          message: 'Webhook inviato a GoHighLevel con successo',
-          response: ghlResponseData
-        };
-        log(`✅ Webhook GHL inviato con successo: ${ghlResponse.status}`);
-      } else {
-        const errorText = await ghlResponse.text();
-        throw new Error(`GHL webhook failed: ${ghlResponse.status} - ${errorText}`);
-      }
-      
-    } catch (ghlWebhookError) {
-      logError(`❌ GHL Webhook failed: ${ghlWebhookError.message}`);
-      
-      ghlWebhookResult = {
-        success: false,
-        error: ghlWebhookError.message,
-        message: 'GHL webhook failed but call processing continues'
-      };
-    }
+    // 🆕 NUOVA LOGICA: Verifica se la chiamata è missed o answered
+    const talkingTime = req.body.talking_time;
+    const isMissedCall = !talkingTime || talkingTime === 0;
+    
+    log(`🔍 Call status analysis:`);
+    log(`   - Talking time: ${talkingTime}`);
+    log(`   - Is missed call: ${isMissedCall}`);
 
-    // 2. SECONDA: Esegui Campaign Automation (priorità alta)
-    let campaignResult = null;
-    try {
-      campaignResult = await processCallEndedWebhook(req.body, correlationId);
+    if (isMissedCall) {
+      // ❌ CHIAMATA PERSA: Invia webhook a GHL + Campaign Automation
+      log(`❌ MISSED CALL detected - Processing with GHL webhook`);
       
-      if (campaignResult.success) {
-        log(`✅ Campaign Automation completata con successo!`);
-        log(`👤 Contatto: ${campaignResult.contact?.name} (${campaignResult.contact?.id})`);
-        log(`🔢 Tentativi: ${campaignResult.attempts?.previous} → ${campaignResult.attempts?.new}`);
+      // 1. PRIMA: Invia webhook a GoHighLevel
+      let ghlWebhookResult = null;
+      try {
+        const ghlWebhookUrl = 'https://services.leadconnectorhq.com/hooks/DfxGoORmPoL5Z1OcfYJM/webhook-trigger/873baa5c-928e-428a-ac68-498d954a9ff7';
         
-        if (campaignResult.campaign) {
-          log(`📈 Campagna spostata: ${campaignResult.campaign.source} → ${campaignResult.campaign.target}`);
+        // Prepara payload per GHL con tutti i dati della chiamata
+        const ghlPayload = {
+          event_type: 'cloudtalk_call_ended',
+          call_type: 'missed',
+          timestamp: timestamp,
+          call_uuid: req.body.call_uuid,
+          call_id: req.body.call_id,
+          internal_number: req.body.internal_number,
+          external_number: req.body.external_number,
+          agent_id: req.body.agent_id,
+          agent_first_name: req.body.agent_first_name,
+          agent_last_name: req.body.agent_last_name,
+          contact_id: req.body.contact_id,
+          talking_time: req.body.talking_time || 0,
+          waiting_time: req.body.waiting_time,
+          call_attempts: req.body['# di tentativi di chiamata'] || req.body.call_attempts,
+          is_missed_call: true,
+          webhook_received_at: timestamp,
+          source: 'cloudtalk_middleware'
+        };
+        
+        log(`📤 Inviando webhook a GHL per MISSED CALL: ${ghlWebhookUrl}`);
+        log(`📋 Payload GHL: ${JSON.stringify(ghlPayload, null, 2)}`);
+        
+        const ghlResponse = await fetch(ghlWebhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'CloudTalk-Middleware/1.0'
+          },
+          body: JSON.stringify(ghlPayload)
+        });
+        
+        if (ghlResponse.ok) {
+          const ghlResponseData = await ghlResponse.text();
+          ghlWebhookResult = {
+            success: true,
+            message: 'Missed call webhook inviato a GoHighLevel con successo',
+            response: ghlResponseData
+          };
+          log(`✅ Webhook GHL per MISSED CALL inviato con successo: ${ghlResponse.status}`);
+        } else {
+          const errorText = await ghlResponse.text();
+          throw new Error(`GHL webhook failed: ${ghlResponse.status} - ${errorText}`);
         }
-      } else {
-        log(`⚠️ Campaign Automation saltata: ${campaignResult.reason}`);
+        
+      } catch (ghlWebhookError) {
+        logError(`❌ GHL Webhook failed: ${ghlWebhookError.message}`);
+        
+        ghlWebhookResult = {
+          success: false,
+          error: ghlWebhookError.message,
+          message: 'GHL webhook failed but call processing continues'
+        };
       }
-      
-    } catch (campaignError) {
-      logError(`❌ Campaign Automation fallita: ${campaignError.message}`);
-      
-      // Se campaign automation fallisce, rispondi 500 per retry
-      // (specialmente per errori di update custom field)
-      return res.status(500).json({
-        success: false,
-        error: 'Campaign automation failed',
-        details: campaignError.message,
-        webhookType: webhookType,
-        timestamp: timestamp,
-        retryable: true
-      });
-    }
-    
-    // 3. TERZA: Esegui processo esistente GHL (priorità bassa)
-    let ghlResult = null;
-    try {
-      ghlResult = await processCloudTalkWebhook(req.body, webhookType);
-      
-      if (ghlResult.success) {
-        log(`✅ GHL Integration completata con successo!`);
-      } else {
-        log(`⚠️ GHL Integration fallita: ${ghlResult.error || ghlResult.reason}`);
-      }
-      
-    } catch (ghlError) {
-      logError(`❌ GHL Integration error (non-critical): ${ghlError.message}`);
-      // GHL errors non bloccano il processo
-    }
-    
-    // 4. Mark webhook as processed (solo se campaign automation ok)
-    if (callId) {
-      markWebhookAsProcessed(callId, webhookType);
-    }
 
-    // 5. Risposta finale
-    const response = {
-      success: true,
-      message: 'CloudTalk call-ended webhook processed with GHL webhook forwarding and Campaign Automation',
-      timestamp: timestamp,
-      ghlWebhookForwarding: ghlWebhookResult || { success: false, reason: 'Not processed' },
-      campaignAutomation: campaignResult || { success: false, reason: 'Not processed' },
-      ghlIntegration: ghlResult || { success: false, reason: 'Not processed' }
-    };
-    
-    // Include contact info if available from campaign automation
-    if (campaignResult?.contact) {
-      response.contact = campaignResult.contact;
+      // 2. SECONDA: Esegui Campaign Automation (priorità alta)
+      let campaignResult = null;
+      try {
+        campaignResult = await processCallEndedWebhook(req.body, correlationId);
+        
+        if (campaignResult.success) {
+          log(`✅ Campaign Automation completata con successo per MISSED CALL!`);
+          log(`👤 Contatto: ${campaignResult.contact?.name} (${campaignResult.contact?.id})`);
+          log(`🔢 Tentativi: ${campaignResult.attempts?.previous} → ${campaignResult.attempts?.new}`);
+          
+          if (campaignResult.campaign) {
+            log(`📈 Campagna spostata: ${campaignResult.campaign.source} → ${campaignResult.campaign.target}`);
+          }
+        } else {
+          log(`⚠️ Campaign Automation saltata: ${campaignResult.reason}`);
+        }
+        
+      } catch (campaignError) {
+        logError(`❌ Campaign Automation fallita: ${campaignError.message}`);
+        
+        // Se campaign automation fallisce, rispondi 500 per retry
+        return res.status(500).json({
+          success: false,
+          error: 'Campaign automation failed for missed call',
+          details: campaignError.message,
+          webhookType: webhookType,
+          timestamp: timestamp,
+          retryable: true
+        });
+      }
+      
+      // 3. TERZA: Esegui processo esistente GHL (priorità bassa)
+      let ghlResult = null;
+      try {
+        ghlResult = await processCloudTalkWebhook(req.body, webhookType);
+        
+        if (ghlResult.success) {
+          log(`✅ GHL Integration completata con successo per MISSED CALL!`);
+        } else {
+          log(`⚠️ GHL Integration fallita: ${ghlResult.error || ghlResult.reason}`);
+        }
+        
+      } catch (ghlError) {
+        logError(`❌ GHL Integration error (non-critical): ${ghlError.message}`);
+        // GHL errors non bloccano il processo
+      }
+      
+      // 4. Mark webhook as processed (solo se campaign automation ok)
+      if (callId) {
+        markWebhookAsProcessed(callId, webhookType);
+      }
+
+      // 5. Risposta finale per MISSED CALL
+      const response = {
+        success: true,
+        call_type: 'missed',
+        message: 'MISSED CALL processed with GHL webhook forwarding and Campaign Automation',
+        timestamp: timestamp,
+        ghlWebhookForwarding: ghlWebhookResult || { success: false, reason: 'Not processed' },
+        campaignAutomation: campaignResult || { success: false, reason: 'Not processed' },
+        ghlIntegration: ghlResult || { success: false, reason: 'Not processed' }
+      };
+      
+      // Include contact info if available from campaign automation
+      if (campaignResult?.contact) {
+        response.contact = campaignResult.contact;
+      }
+      
+      log(`🎉 MISSED CALL webhook processing completed successfully!`);
+      res.json(response);
+      
+    } else {
+      // ✅ CHIAMATA RISPOSTA: Non inviare webhook, solo Campaign Automation
+      log(`✅ ANSWERED CALL detected - Processing WITHOUT GHL webhook`);
+      
+      // Esegui solo Campaign Automation (senza webhook GHL)
+      let campaignResult = null;
+      try {
+        campaignResult = await processCallEndedWebhook(req.body, correlationId);
+        
+        if (campaignResult.success) {
+          log(`✅ Campaign Automation completata con successo per ANSWERED CALL!`);
+          log(`👤 Contatto: ${campaignResult.contact?.name} (${campaignResult.contact?.id})`);
+          log(`🔢 Tentativi: ${campaignResult.attempts?.previous} → ${campaignResult.attempts?.new}`);
+          
+          if (campaignResult.campaign) {
+            log(`📈 Campagna spostata: ${campaignResult.campaign.source} → ${campaignResult.campaign.target}`);
+          }
+        } else {
+          log(`⚠️ Campaign Automation saltata: ${campaignResult.reason}`);
+        }
+        
+      } catch (campaignError) {
+        logError(`❌ Campaign Automation fallita: ${campaignError.message}`);
+        
+        // Se campaign automation fallisce, rispondi 500 per retry
+        return res.status(500).json({
+          success: false,
+          error: 'Campaign automation failed for answered call',
+          details: campaignError.message,
+          webhookType: webhookType,
+          timestamp: timestamp,
+          retryable: true
+        });
+      }
+      
+      // Mark webhook as processed (solo se campaign automation ok)
+      if (callId) {
+        markWebhookAsProcessed(callId, webhookType);
+      }
+
+      // Risposta finale per ANSWERED CALL (senza GHL webhook)
+      const response = {
+        success: true,
+        call_type: 'answered',
+        message: 'ANSWERED CALL processed - waiting for recording (no GHL webhook sent)',
+        timestamp: timestamp,
+        ghlWebhookForwarding: { success: false, reason: 'Skipped for answered calls' },
+        campaignAutomation: campaignResult || { success: false, reason: 'Not processed' },
+        ghlIntegration: { success: false, reason: 'Skipped for answered calls' }
+      };
+      
+      // Include contact info if available from campaign automation
+      if (campaignResult?.contact) {
+        response.contact = campaignResult.contact;
+      }
+      
+      log(`🎉 ANSWERED CALL webhook processing completed - waiting for recording!`);
+      res.json(response);
     }
-    
-    log(`🎉 Call-ended webhook processing completed successfully!`);
-    res.json(response);
     
   } catch (error) {
     logError(`💥 Errore nel processamento call-ended webhook: ${error.message}`);

@@ -377,15 +377,15 @@ async function handleCallEndedWebhook(req, res) {
 }
 
 /**
- * Handler specializzato per webhook call-started con Google Sheets integration
- * Integra il processo esistente con il tracking in tempo reale
- * UPDATED: Now uses enhanced validation to prevent undefined call_id issues
+ * Handler specializzato per webhook call-started (LOGGING ONLY)
+ * CloudTalk invia separatamente a /api/google-sheets-webhooks/call-data per Google Sheets
+ * UPDATED: Removed Google Sheets processing to prevent duplication
  */
 async function handleCallStartedWebhook(req, res) {
   const timestamp = new Date().toISOString();
   const webhookType = 'call-started';
 
-  log(`📞 [${timestamp}] CloudTalk Webhook: CALL-STARTED (Google Sheets Only)`);
+  log(`📞 [${timestamp}] CloudTalk Webhook: CALL-STARTED (Logging Only)`);
   log(`📡 Headers: ${JSON.stringify(req.headers, null, 2)}`);
   log(`📋 Payload: ${JSON.stringify(req.body, null, 2)}`);
 
@@ -424,61 +424,24 @@ async function handleCallStartedWebhook(req, res) {
   }
 
   try {
-    // 🎯 UNICO SCOPO: Invia a Google Sheets endpoint per creare riga iniziale
-    let googleSheetsResult = null;
-    try {
-      const googleSheetsUrl = 'https://webhooks.squaddcrm.com/api/google-sheets-webhooks/call-data';
-      
-      log(`📤 Inviando call-started a Google Sheets: ${googleSheetsUrl}`);
-      log(`📋 Payload per Google Sheets: ${JSON.stringify(enhancedPayload, null, 2)}`);
-      
-      const googleSheetsResponse = await fetch(googleSheetsUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'CloudTalk-Middleware/1.0'
-        },
-        body: JSON.stringify(enhancedPayload)
-      });
-
-      if (googleSheetsResponse.ok) {
-        const responseData = await googleSheetsResponse.text();
-        googleSheetsResult = {
-          success: true,
-          message: 'Call started row created in Google Sheets',
-          response: responseData
-        };
-        log(`✅ Google Sheets call-started inviato con successo: ${googleSheetsResponse.status}`);
-      } else {
-        const errorText = await googleSheetsResponse.text();
-        throw new Error(`Google Sheets webhook failed: ${googleSheetsResponse.status} - ${errorText}`);
-      }
-
-    } catch (googleSheetsError) {
-      logError(`❌ Google Sheets call-started failed: ${googleSheetsError.message}`);
-
-      googleSheetsResult = {
-        success: false,
-        error: googleSheetsError.message,
-        message: 'Google Sheets call-started failed'
-      };
-    }
-
-    // Mark webhook as processed
+    // Mark webhook as processed (solo logging, niente Google Sheets)
     if (callId) {
       markWebhookAsProcessed(callId, webhookType);
     }
 
-    // Risposta finale - SOLO Google Sheets, niente GHL
+    log(`📋 Call-started webhook received - CloudTalk will handle Google Sheets directly`);
+    log(`ℹ️ This webhook is only for logging purposes`);
+
+    // Risposta finale - SOLO logging, Google Sheets gestito da CloudTalk direttamente
     const response = {
       success: true,
-      message: 'Call-started webhook sent to Google Sheets only (no GHL processing)',
+      message: 'Call-started webhook logged - Google Sheets handled by CloudTalk automation',
       timestamp: timestamp,
-      googleSheetsResult: googleSheetsResult || { success: false, reason: 'Not processed' },
-      ghlProcessing: { success: false, reason: 'Intentionally skipped for call-started' }
+      action: 'logged_only',
+      note: 'Google Sheets processing happens via separate CloudTalk automation to /api/google-sheets-webhooks/call-data'
     };
 
-    log(`🎉 Call-started webhook completed - Google Sheets only!`);
+    log(`🎉 Call-started webhook completed - logging only!`);
     res.json(response);
 
   } catch (error) {

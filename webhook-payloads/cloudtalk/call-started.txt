@@ -71,3 +71,55 @@ PAYLOAD:
 
 ==============================
 
+
+=== WEBHOOK RECEIVED: 2025-09-25T14:47:42.506Z ===
+Provider: cloudtalk
+Webhook Type: call-started
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "197"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_uuid": "test-no-duplicate-456",
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "agent_first_name": "Roberto",
+  "agent_last_name": "Bondici"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T14:48:37.755Z ===
+Provider: cloudtalk
+Webhook Type: call-started
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "190"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_uuid": "test-fixed-789",
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "agent_first_name": "Roberto",
+  "agent_last_name": "Bondici"
+}
+
+==============================
+

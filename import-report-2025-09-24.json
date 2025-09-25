@@ -1,0 +1,12 @@
+{
+  "success": [],
+  "failed": [
+    {
+      "success": false,
+      "name": "Petronela Rebecca scorus",
+      "phone": "+393807939119",
+      "error": "HTTP 406: {\"responseData\":{\"status\":406,\"message\":\"Invalid input data.\",\"data\":{\"public_number\":[\"Please supply only valid numbers. Number 393807939119 is not valid.\"]}}}"
+    }
+  ],
+  "total": 48
+}

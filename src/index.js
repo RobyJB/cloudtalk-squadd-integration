@@ -8,6 +8,7 @@ import recordingsRouter from './routes/recordings.js';
 import ghlWebhooksRouter from './routes/ghl-webhooks.js';
 import cloudtalkWebhooksRouter from './routes/cloudtalk-webhooks.js';
 import googleSheetsWebhooksRouter from './routes/google-sheets-webhooks.js';
+import googleSheetsQueueService from './services/google-sheets-queue-service.js';
 
 const app = express();
 
@@ -41,4 +42,14 @@ app.use((err, _req, res, _next) => {
 app.listen(config.port, () => {
   log(`server:listening port=${config.port}`);
   console.log(`Listening on http://localhost:${config.port}`);
+
+  // Log Google Sheets queue service status
+  const queueHealth = googleSheetsQueueService.getHealthStatus();
+  log(`📊 Google Sheets Queue Service: ${queueHealth.status}`);
+  log(`📋 Queue Configuration: ${queueHealth.queue.maxConcurrent} concurrent, ${queueHealth.configuration.requestDelay}ms delay`);
+  log(`🔧 Google Sheets URL Configured: ${queueHealth.configuration.googleSheetsConfigured}`);
+
+  if (!queueHealth.configuration.googleSheetsConfigured) {
+    log('⚠️  Set GOOGLE_SHEETS_APPS_SCRIPT_URL environment variable to enable Google Sheets tracking');
+  }
 });

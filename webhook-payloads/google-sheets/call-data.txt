@@ -1,0 +1,114 @@
+
+=== WEBHOOK RECEIVED: 2025-09-24T22:20:41.041Z ===
+Provider: google-sheets
+Webhook Type: call-data
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "260"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_uuid": "final-test-789",
+  "internal_number": 393520441984,
+  "external_number": "393513416607",
+  "contact_name": "Roberto Bondici (Final Test)",
+  "agent_id": 493933,
+  "agent_first_name": "Roberto",
+  "agent_last_name": "Bondici"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-24T22:20:51.070Z ===
+Provider: google-sheets
+Webhook Type: call-data
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "259"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_uuid": "final-test-789",
+  "call_id": 1012183927,
+  "internal_number": 393520441984,
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "agent_first_name": "Roberto",
+  "agent_last_name": "Bondici",
+  "talking_time": 67
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-24T22:27:15.901Z ===
+Provider: google-sheets
+Webhook Type: call-data
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "268"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_uuid": "timestamp-test-001",
+  "internal_number": 393520441984,
+  "external_number": "393513416607",
+  "contact_name": "Roberto Bondici (Timestamp Test)",
+  "agent_id": 493933,
+  "agent_first_name": "Roberto",
+  "agent_last_name": "Bondici"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-24T22:27:27.450Z ===
+Provider: google-sheets
+Webhook Type: call-data
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "263"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_uuid": "timestamp-test-001",
+  "call_id": 1012183928,
+  "internal_number": 393520441984,
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "agent_first_name": "Roberto",
+  "agent_last_name": "Bondici",
+  "talking_time": 89
+}
+
+==============================
+

@@ -533,6 +533,11 @@ ${transcription}
 ⏰ Elaborata: ${new Date(processedAt).toLocaleString('it-IT')}`;
   }
 
+  // Check if this is voicemail
+  if (analysis.call_type === 'segreteria') {
+    return `📵 SEGRETERIA - CLOUDTALK`;
+  }
+
   // Check if this is a non-substantial call
   if (analysis.call_type === 'non_sostanziosa') {
     return `📞 CONVERSAZIONE NON AVVENUTA

@@ -4,6 +4,7 @@ import { logRequest, logError, log } from '../logger.js';
 import { saveWebhookPayload } from '../utils/webhook-payload-logger.js';
 import { isWebhookAlreadyProcessed, markWebhookAsProcessed } from '../utils/webhook-deduplication.js';
 import { processCallEndedWebhook } from '../services/cloudtalk-campaign-automation.js';
+import googleSheetsService from '../services/google-sheets-service.js';
 
 const router = express.Router();
 
@@ -122,7 +123,66 @@ async function handleCallEndedWebhook(req, res) {
   }
 
   try {
-    // 1. PRIMA: Esegui Campaign Automation (priorità alta)
+    // 1. PRIMA: Invia webhook a GoHighLevel
+    let ghlWebhookResult = null;
+    try {
+      const ghlWebhookUrl = 'https://services.leadconnectorhq.com/hooks/DfxGoORmPoL5Z1OcfYJM/webhook-trigger/873baa5c-928e-428a-ac68-498d954a9ff7';
+      
+      // Prepara payload per GHL con tutti i dati della chiamata
+      const ghlPayload = {
+        event_type: 'cloudtalk_call_ended',
+        timestamp: timestamp,
+        call_uuid: req.body.call_uuid,
+        call_id: req.body.call_id,
+        internal_number: req.body.internal_number,
+        external_number: req.body.external_number,
+        agent_id: req.body.agent_id,
+        agent_first_name: req.body.agent_first_name,
+        agent_last_name: req.body.agent_last_name,
+        contact_id: req.body.contact_id,
+        talking_time: req.body.talking_time,
+        waiting_time: req.body.waiting_time,
+        call_attempts: req.body['# di tentativi di chiamata'] || req.body.call_attempts,
+        webhook_received_at: timestamp,
+        source: 'cloudtalk_middleware'
+      };
+      
+      log(`📤 Inviando webhook a GHL: ${ghlWebhookUrl}`);
+      log(`📋 Payload GHL: ${JSON.stringify(ghlPayload, null, 2)}`);
+      
+      const ghlResponse = await fetch(ghlWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'CloudTalk-Middleware/1.0'
+        },
+        body: JSON.stringify(ghlPayload)
+      });
+      
+      if (ghlResponse.ok) {
+        const ghlResponseData = await ghlResponse.text();
+        ghlWebhookResult = {
+          success: true,
+          message: 'Webhook inviato a GoHighLevel con successo',
+          response: ghlResponseData
+        };
+        log(`✅ Webhook GHL inviato con successo: ${ghlResponse.status}`);
+      } else {
+        const errorText = await ghlResponse.text();
+        throw new Error(`GHL webhook failed: ${ghlResponse.status} - ${errorText}`);
+      }
+      
+    } catch (ghlWebhookError) {
+      logError(`❌ GHL Webhook failed: ${ghlWebhookError.message}`);
+      
+      ghlWebhookResult = {
+        success: false,
+        error: ghlWebhookError.message,
+        message: 'GHL webhook failed but call processing continues'
+      };
+    }
+
+    // 2. SECONDA: Esegui Campaign Automation (priorità alta)
     let campaignResult = null;
     try {
       campaignResult = await processCallEndedWebhook(req.body, correlationId);
@@ -154,7 +214,7 @@ async function handleCallEndedWebhook(req, res) {
       });
     }
     
-    // 2. DOPO: Esegui processo esistente GHL (priorità bassa)
+    // 3. TERZA: Esegui processo esistente GHL (priorità bassa)
     let ghlResult = null;
     try {
       ghlResult = await processCloudTalkWebhook(req.body, webhookType);
@@ -170,16 +230,17 @@ async function handleCallEndedWebhook(req, res) {
       // GHL errors non bloccano il processo
     }
     
-    // 3. Mark webhook as processed (solo se campaign automation ok)
+    // 4. Mark webhook as processed (solo se campaign automation ok)
     if (callId) {
       markWebhookAsProcessed(callId, webhookType);
     }
-    
-    // 4. Risposta finale
+
+    // 5. Risposta finale
     const response = {
       success: true,
-      message: 'CloudTalk call-ended webhook processed with Campaign Automation',
+      message: 'CloudTalk call-ended webhook processed with GHL webhook forwarding and Campaign Automation',
       timestamp: timestamp,
+      ghlWebhookForwarding: ghlWebhookResult || { success: false, reason: 'Not processed' },
       campaignAutomation: campaignResult || { success: false, reason: 'Not processed' },
       ghlIntegration: ghlResult || { success: false, reason: 'Not processed' }
     };
@@ -194,6 +255,116 @@ async function handleCallEndedWebhook(req, res) {
     
   } catch (error) {
     logError(`💥 Errore nel processamento call-ended webhook: ${error.message}`);
+
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      webhookType: webhookType,
+      timestamp: timestamp
+    });
+  }
+}
+
+/**
+ * Handler specializzato per webhook call-started con Google Sheets integration
+ * Integra il processo esistente con il tracking in tempo reale
+ */
+async function handleCallStartedWebhook(req, res) {
+  const timestamp = new Date().toISOString();
+  const webhookType = 'call-started';
+
+  // Estrai correlation ID per il tracking
+  const correlationId = req.body.call_uuid || req.body.call_id || req.body.Call_id || `webhook_${Date.now()}`;
+
+  log(`📞 [${timestamp}] CloudTalk Webhook: CALL-STARTED (Google Sheets Integration)`);
+  log(`🔗 Correlation ID: ${correlationId}`);
+  log(`📡 Headers: ${JSON.stringify(req.headers, null, 2)}`);
+  log(`📋 Payload: ${JSON.stringify(req.body, null, 2)}`);
+
+  // Check for duplicate webhook
+  const callId = req.body.call_id || req.body.Call_id || req.body.call_uuid;
+  if (callId && isWebhookAlreadyProcessed(callId, webhookType)) {
+    log(`🔄 Skipping duplicate webhook: ${callId}_${webhookType}`);
+    return res.json({
+      success: true,
+      message: 'Webhook already processed (duplicate)',
+      callId: callId,
+      webhookType: webhookType,
+      timestamp: timestamp
+    });
+  }
+
+  // Save webhook payload to JSON file
+  const saveResult = await saveWebhookPayload('cloudtalk', webhookType, req.body, req.headers);
+  if (saveResult.success) {
+    log(`💾 Payload salvato in: ${saveResult.filepath}`);
+  } else {
+    logError(`❌ Errore salvando payload: ${saveResult.error}`);
+  }
+
+  try {
+    // 1. PRIMA: Insert Google Sheets row per call started
+    let googleSheetsResult = null;
+    try {
+      await googleSheetsService.insertCallStarted(req.body);
+
+      googleSheetsResult = {
+        success: true,
+        message: 'Call started tracked in Google Sheets'
+      };
+
+      log(`📊 Call started tracked in Google Sheets: ${req.body.call_uuid}`);
+
+    } catch (googleSheetsError) {
+      logError(`❌ Google Sheets insert failed: ${googleSheetsError.message}`);
+
+      googleSheetsResult = {
+        success: false,
+        error: googleSheetsError.message,
+        message: 'Google Sheets tracking failed but call processing continues'
+      };
+    }
+
+    // 2. DOPO: Esegui processo esistente GHL (priorità normale)
+    let ghlResult = null;
+    try {
+      ghlResult = await processCloudTalkWebhook(req.body, webhookType);
+
+      if (ghlResult.success) {
+        log(`✅ GHL Integration completata con successo!`);
+      } else {
+        log(`⚠️ GHL Integration fallita: ${ghlResult.error || ghlResult.reason}`);
+      }
+
+    } catch (ghlError) {
+      logError(`❌ GHL Integration error (non-critical): ${ghlError.message}`);
+      // GHL errors non bloccano il processo
+    }
+
+    // 3. Mark webhook as processed
+    if (callId) {
+      markWebhookAsProcessed(callId, webhookType);
+    }
+
+    // 4. Risposta finale
+    const response = {
+      success: true,
+      message: 'CloudTalk call-started webhook processed with Google Sheets tracking',
+      timestamp: timestamp,
+      googleSheetsTracking: googleSheetsResult || { success: false, reason: 'Not processed' },
+      ghlIntegration: ghlResult || { success: false, reason: 'Not processed' }
+    };
+
+    // Include contact info if available from GHL integration
+    if (ghlResult?.contact) {
+      response.contact = ghlResult.contact;
+    }
+
+    log(`🎉 Call-started webhook processing completed successfully!`);
+    res.json(response);
+
+  } catch (error) {
+    logError(`💥 Errore nel processamento call-started webhook: ${error.message}`);
 
     res.status(500).json({
       success: false,
@@ -231,11 +402,11 @@ router.post('/contact-updated', async (req, res) => {
 });
 
 /**
- * Call started webhook
+ * Call started webhook with Google Sheets tracking
  * POST /api/cloudtalk-webhooks/call-started
  */
 router.post('/call-started', async (req, res) => {
-  await handleWebhook(req, res, 'call-started');
+  await handleCallStartedWebhook(req, res);
 });
 
 /**

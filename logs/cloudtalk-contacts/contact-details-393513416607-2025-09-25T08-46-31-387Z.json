@@ -1,0 +1,60 @@
+{
+  "timestamp": "2025-09-25T08:46:31.391Z",
+  "searchedPhone": "+393513416607",
+  "contactId": "1451646073",
+  "fullPayload": {
+    "responseData": {
+      "Contact": {
+        "id": "1451646073",
+        "name": "Roberto Bondici (Priority Contact)",
+        "title": "API Developer &amp; Test Contact",
+        "company": "CloudTalk API Testing",
+        "industry": "Technology",
+        "website": "https://cloudtalk.io",
+        "address": "Italy",
+        "city": "Rome",
+        "zip": null,
+        "state": "Lazio",
+        "country_id": "109",
+        "favorite_agent": null,
+        "created": "2025-09-25T10:34:27+02:00",
+        "modified": "2025-09-25T10:41:07+02:00"
+      },
+      "ContactEmail": [
+        {
+          "email": "roberto.priority@cloudtalk.test",
+          "contact_id": "1451646073"
+        }
+      ],
+      "ContactNumber": [
+        {
+          "public_number": "+393513416607",
+          "contact_id": "1451646073"
+        }
+      ],
+      "Tag": [
+        {
+          "name": "Mancata Risposta"
+        }
+      ],
+      "ExternalUrl": null,
+      "ContactAttribute": [
+        {
+          "attribute_id": "10133",
+          "title": "Squadd ID",
+          "value": ""
+        },
+        {
+          "attribute_id": "10135",
+          "title": "# di tentativi di chiamata",
+          "value": "71"
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "script": "get-contact-complete-details.js",
+    "version": "1.0.0",
+    "description": "Dettagli completi contatto CloudTalk per numero +393513416607"
+  }
+}

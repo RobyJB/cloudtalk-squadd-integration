@@ -259,3 +259,33 @@ PAYLOAD:
 
 ==============================
 
+
+=== WEBHOOK RECEIVED: 2025-09-24T22:00:08.086Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "285"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_uuid": "webhook-test-456",
+  "call_id": 1012183927,
+  "internal_number": 393520441984,
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "agent_first_name": "Roberto",
+  "agent_last_name": "Bondici",
+  "talking_time": 45,
+  "waiting_time": 12
+}
+
+==============================
+

@@ -5,6 +5,7 @@ import { saveWebhookPayload } from '../utils/webhook-payload-logger.js';
 import { isWebhookAlreadyProcessed, markWebhookAsProcessed } from '../utils/webhook-deduplication.js';
 import { validateAndEnhanceWebhookPayload, extractDeduplicationKey, logValidationSummary } from '../utils/webhook-validation.js';
 import { processCallEndedWebhook } from '../services/cloudtalk-campaign-automation.js';
+import { addNoteToGHLContact } from '../../API Squadd/tests/add-note.js';
 import googleSheetsService from '../services/google-sheets-service.js';
 
 const router = express.Router();
@@ -251,14 +252,45 @@ async function handleCallEndedWebhook(req, res) {
       let campaignResult = null;
       try {
         campaignResult = await processCallEndedWebhook(enhancedPayload, correlationId);
-        
+
         if (campaignResult.success) {
           log(`✅ Campaign Automation completata con successo per MISSED CALL!`);
           log(`👤 Contatto: ${campaignResult.contact?.name} (${campaignResult.contact?.id})`);
           log(`🔢 Tentativi: ${campaignResult.attempts?.previous} → ${campaignResult.attempts?.new}`);
-          
+
           if (campaignResult.campaign) {
             log(`📈 Campagna spostata: ${campaignResult.campaign.source} → ${campaignResult.campaign.target}`);
+          }
+
+          // 3. TERZA: Crea nota per MISSED CALL nel contatto GHL
+          try {
+            const noteText = '📵 TENTATIVO SENZA RISPOSTA - CLOUDTALK';
+            log(`📝 Creando nota per MISSED CALL: "${noteText}"`);
+
+            const noteResult = await addNoteToGHLContact(campaignResult.contact.id, noteText);
+
+            if (noteResult && noteResult.id) {
+              log(`✅ Nota creata con successo per MISSED CALL! ID: ${noteResult.id}`);
+              campaignResult.noteCreated = {
+                success: true,
+                noteId: noteResult.id,
+                noteText: noteText
+              };
+            } else {
+              log(`⚠️ Nota creata ma risposta anomala: ${JSON.stringify(noteResult)}`);
+              campaignResult.noteCreated = {
+                success: true,
+                noteText: noteText,
+                response: noteResult
+              };
+            }
+          } catch (noteError) {
+            logError(`❌ Errore creando nota per MISSED CALL: ${noteError.message}`);
+            campaignResult.noteCreated = {
+              success: false,
+              error: noteError.message,
+              noteText: '📵 TENTATIVO SENZA RISPOSTA - CLOUDTALK'
+            };
           }
         } else {
           log(`⚠️ Campaign Automation saltata: ${campaignResult.reason}`);
@@ -288,11 +320,12 @@ async function handleCallEndedWebhook(req, res) {
         success: true,
         call_type: 'missed',
         call_status: callStatus,
-        message: 'MISSED CALL processed with GHL webhook forwarding and Campaign Automation',
+        message: 'MISSED CALL processed with GHL webhook forwarding, Campaign Automation, and Note Creation',
         timestamp: timestamp,
         analytics: callAnalysis,
         ghlWebhookForwarding: ghlWebhookResult || { success: false, reason: 'Not processed' },
-        campaignAutomation: campaignResult || { success: false, reason: 'Not processed' }
+        campaignAutomation: campaignResult || { success: false, reason: 'Not processed' },
+        noteCreation: campaignResult?.noteCreated || { success: false, reason: 'Not processed' }
       };
       
       // Include contact info if available from campaign automation

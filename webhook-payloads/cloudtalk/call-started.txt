@@ -123,3 +123,129 @@ PAYLOAD:
 
 ==============================
 
+
+=== WEBHOOK RECEIVED: 2025-09-25T15:37:12.199Z ===
+Provider: cloudtalk
+Webhook Type: call-started
+Headers: {
+  "host": "localhost:3000",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "user-agent": "WebhookFixValidation/1.0",
+  "accept": "*/*",
+  "accept-language": "*",
+  "sec-fetch-mode": "cors",
+  "accept-encoding": "gzip, deflate",
+  "content-length": "140"
+}
+User-Agent: WebhookFixValidation/1.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "internal_number": 393520441984,
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "agent_first_name": "Roberto",
+  "agent_last_name": "Bondici"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T15:37:12.205Z ===
+Provider: cloudtalk
+Webhook Type: call-started
+Headers: {
+  "host": "localhost:3000",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "user-agent": "WebhookFixValidation/1.0",
+  "accept": "*/*",
+  "accept-language": "*",
+  "sec-fetch-mode": "cors",
+  "accept-encoding": "gzip, deflate",
+  "content-length": "140"
+}
+User-Agent: WebhookFixValidation/1.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "internal_number": 393520441984,
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "agent_first_name": "Roberto",
+  "agent_last_name": "Bondici"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T15:37:17.962Z ===
+Provider: cloudtalk
+Webhook Type: call-started
+Headers: {
+  "host": "localhost:3000",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "user-agent": "WebhookFixValidation/1.0",
+  "accept": "*/*",
+  "accept-language": "*",
+  "sec-fetch-mode": "cors",
+  "accept-encoding": "gzip, deflate",
+  "content-length": "267"
+}
+User-Agent: WebhookFixValidation/1.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_uuid": "dedup-test-1758814637960-uuid",
+  "call_id": "dedup-test-1758814637960",
+  "internal_number": 393520441984,
+  "external_number": "393513416607",
+  "contact_name": "Roberto Bondici (Dedup Test)",
+  "agent_id": 493933,
+  "agent_first_name": "Roberto",
+  "agent_last_name": "Bondici"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T15:37:19.070Z ===
+Provider: cloudtalk
+Webhook Type: call-started
+Headers: {
+  "host": "localhost:3000",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "user-agent": "WebhookFixValidation/1.0",
+  "accept": "*/*",
+  "accept-language": "*",
+  "sec-fetch-mode": "cors",
+  "accept-encoding": "gzip, deflate",
+  "content-length": "268"
+}
+User-Agent: WebhookFixValidation/1.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_uuid": "proper-test-1758814639067-uuid",
+  "call_id": "proper-test-1758814639067",
+  "internal_number": 393520441984,
+  "external_number": "393513416607",
+  "contact_name": "Roberto Bondici (Flow Test)",
+  "agent_id": 493933,
+  "agent_first_name": "Roberto",
+  "agent_last_name": "Bondici"
+}
+
+==============================
+

@@ -607,3 +607,71 @@ PAYLOAD:
 
 ==============================
 
+
+=== WEBHOOK RECEIVED: 2025-09-25T15:37:13.219Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "user-agent": "WebhookFixValidation/1.0",
+  "accept": "*/*",
+  "accept-language": "*",
+  "sec-fetch-mode": "cors",
+  "accept-encoding": "gzip, deflate",
+  "content-length": "252"
+}
+User-Agent: WebhookFixValidation/1.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_uuid": "fix-test-1758814633208",
+  "call_id": "fix-test-call-1758814633208",
+  "internal_number": 393520441984,
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "agent_first_name": "Roberto",
+  "agent_last_name": "Bondici",
+  "talking_time": 0,
+  "waiting_time": 15
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-09-25T15:37:19.579Z ===
+Provider: cloudtalk
+Webhook Type: call-ended
+Headers: {
+  "host": "localhost:3000",
+  "connection": "keep-alive",
+  "content-type": "application/json",
+  "user-agent": "WebhookFixValidation/1.0",
+  "accept": "*/*",
+  "accept-language": "*",
+  "sec-fetch-mode": "cors",
+  "accept-encoding": "gzip, deflate",
+  "content-length": "258"
+}
+User-Agent: WebhookFixValidation/1.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_uuid": "proper-test-1758814639067-uuid",
+  "call_id": "proper-test-1758814639067",
+  "internal_number": 393520441984,
+  "external_number": "393513416607",
+  "agent_id": 493933,
+  "agent_first_name": "Roberto",
+  "agent_last_name": "Bondici",
+  "talking_time": 30,
+  "waiting_time": 8
+}
+
+==============================
+

@@ -394,6 +394,9 @@ async function processCallStarted(contact, payload) {
 /**
  * Process call ended webhook
  */
+/**
+ * Process call ended webhook
+ */
 async function processCallEnded(contact, payload) {
   console.log('📞 Processing call ended...');
 
@@ -422,20 +425,72 @@ async function processCallEnded(contact, payload) {
     action = 'no_answer_logged';
   } else {
     // Chiamata effettivamente terminata
-    noteText = `📞 CHIAMATA TERMINATA - CLOUDTALK
-
-📞 Call ID: ${callId}
-📱 Numero: ${payload.external_number}
-👤 Agente: ${payload.agent_name || payload.agent_id || 'N/A'}
-⏱️ Durata: ${duration}
-📊 Stato: ${status}
-🕐 Ora fine: ${new Date().toLocaleString('it-IT')}
-
-✅ Chiamata completata`;
+    noteText = `📞 CHIAMATA TERMINATA - CLOUDTALK\n\n📞 Call ID: ${callId}\n📱 Numero: ${payload.external_number}\n👤 Agente: ${payload.agent_name || payload.agent_id || 'N/A'}\n⏱️ Durata: ${duration}\n📊 Stato: ${status}\n🕐 Ora fine: ${new Date().toLocaleString('it-IT')}\n\n✅ Chiamata completata`;
     action = 'call_end_logged';
   }
 
   const result = await addNoteToGHLContact(contact.id, noteText);
+
+  // NUOVO: Invia webhook a GoHighLevel dopo aver creato la nota
+  let webhookResult = null;
+  try {
+    const ghlWebhookUrl = 'https://services.leadconnectorhq.com/hooks/DfxGoORmPoL5Z1OcfYJM/webhook-trigger/873baa5c-928e-428a-ac68-498d954a9ff7';
+    
+    const webhookPayload = {
+      event_type: 'cloudtalk_call_ended',
+      timestamp: new Date().toISOString(),
+      call_uuid: payload.call_uuid,
+      call_id: payload.call_id,
+      internal_number: payload.internal_number,
+      external_number: payload.external_number,
+      agent_id: payload.agent_id,
+      agent_first_name: payload.agent_first_name,
+      agent_last_name: payload.agent_last_name,
+      contact_id: payload.contact_id,
+      talking_time: payload.talking_time,
+      waiting_time: payload.waiting_time,
+      call_attempts: payload['# di tentativi di chiamata'] || payload.call_attempts,
+      duration: duration,
+      status: status,
+      is_no_answer: isNoAnswer,
+      note_created: true,
+      note_id: result.id,
+      ghl_contact_id: contact.id,
+      source: 'cloudtalk_middleware'
+    };
+    
+    console.log(`📤 Inviando webhook a GHL: ${ghlWebhookUrl}`);
+    console.log(`📋 Payload webhook: ${JSON.stringify(webhookPayload, null, 2)}`);
+    
+    const ghlResponse = await fetch(ghlWebhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'CloudTalk-Middleware/1.0'
+      },
+      body: JSON.stringify(webhookPayload)
+    });
+    
+    if (ghlResponse.ok) {
+      const responseData = await ghlResponse.text();
+      webhookResult = {
+        success: true,
+        response: responseData
+      };
+      console.log(`✅ Webhook GHL inviato con successo: ${ghlResponse.status}`);
+      console.log(`📨 Risposta GHL: ${responseData}`);
+    } else {
+      const errorText = await ghlResponse.text();
+      throw new Error(`GHL webhook failed: ${ghlResponse.status} - ${errorText}`);
+    }
+    
+  } catch (webhookError) {
+    console.error(`❌ Errore invio webhook GHL: ${webhookError.message}`);
+    webhookResult = {
+      success: false,
+      error: webhookError.message
+    };
+  }
 
   return {
     action: action,
@@ -443,7 +498,8 @@ async function processCallEnded(contact, payload) {
     callId: callId,
     duration: duration,
     status: status,
-    isNoAnswer: isNoAnswer
+    isNoAnswer: isNoAnswer,
+    webhookSent: webhookResult
   };
 }
 

@@ -171,6 +171,113 @@ router.post('/opportunity-status-changed', async (req, res) => {
 });
 
 /**
+ * Update total calls webhook from GHL - AGGIORNAMENTO CAMPO CUSTOM CLOUDTALK
+ * POST /api/ghl-webhooks/update-total-calls
+ */
+router.post('/update-total-calls', async (req, res) => {
+  const timestamp = new Date().toISOString();
+  const webhookType = 'update-total-calls';
+
+  log(`🔢 [${timestamp}] GHL Webhook: ${webhookType.toUpperCase()} - AGGIORNAMENTO CHIAMATE TOTALI`);
+  log(`📋 Payload: ${JSON.stringify(req.body, null, 2)}`);
+
+  // Salva webhook payload
+  const saveResult = await saveWebhookPayload('ghl', webhookType, req.body, req.headers);
+  if (saveResult.success) {
+    log(`💾 Payload salvato in: ${saveResult.filepath}`);
+  }
+
+  try {
+    // Estrai i dati necessari dal payload GHL
+    const phoneNumber = req.body.phone;
+    const totalCalls = req.body.customData?.totaleChiamate;
+    const contactName = req.body.full_name || `${req.body.first_name || ''} ${req.body.last_name || ''}`.trim();
+
+    // Validazione dati richiesti
+    if (!phoneNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Numero di telefono mancante nel payload',
+        error: 'MISSING_PHONE',
+        timestamp: timestamp,
+        payloadSaved: saveResult.success
+      });
+    }
+
+    if (!totalCalls && totalCalls !== 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Campo totaleChiamate mancante in customData',
+        error: 'MISSING_TOTAL_CALLS',
+        timestamp: timestamp,
+        payloadSaved: saveResult.success
+      });
+    }
+
+    log(`📞 Aggiornamento chiamate totali: ${contactName} (${phoneNumber}) -> ${totalCalls} chiamate`);
+
+    // Importa il servizio per aggiornare i campi custom CloudTalk
+    const { updateContactTotalCalls } = await import('../services/cloudtalk-custom-fields-service.js');
+
+    // Aggiorna il campo "# di chiamate totali" in CloudTalk
+    const updateResult = await updateContactTotalCalls(phoneNumber, totalCalls);
+
+    if (updateResult.success) {
+      // Successo
+      res.json({
+        success: true,
+        message: 'Campo "# di chiamate totali" aggiornato con successo in CloudTalk',
+        contact: {
+          id: updateResult.contactId,
+          name: updateResult.contactName,
+          phone: updateResult.phoneNumber
+        },
+        update: {
+          fieldName: "# di chiamate totali",
+          oldValue: "N/A", // Non abbiamo il valore precedente
+          newValue: updateResult.totalCalls
+        },
+        timestamp: timestamp,
+        payloadSaved: saveResult.success
+      });
+
+      log(`✅ Chiamate totali aggiornate per ${updateResult.contactName}: ${totalCalls}`);
+
+    } else {
+      // Errore nell'aggiornamento
+      let errorStatus = 500;
+
+      if (updateResult.error === 'CONTACT_NOT_FOUND') {
+        errorStatus = 404;
+      }
+
+      res.status(errorStatus).json({
+        success: false,
+        message: `Errore aggiornamento chiamate totali: ${updateResult.message || updateResult.error}`,
+        error: updateResult.error,
+        phoneNumber: phoneNumber,
+        totalCalls: totalCalls,
+        timestamp: timestamp,
+        payloadSaved: saveResult.success
+      });
+
+      logError(`❌ Errore aggiornamento chiamate totali per ${phoneNumber}: ${updateResult.error}`);
+    }
+
+  } catch (error) {
+    logError('Errore processo aggiornamento chiamate totali:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Errore interno nel processo aggiornamento chiamate totali',
+      error: error.message,
+      timestamp: timestamp,
+      payloadSaved: saveResult.success
+    });
+  }
+});
+
+/**
  * Converte errori del processo in status HTTP appropriati
  */
 function getHttpStatusFromError(errorType) {
@@ -288,9 +395,10 @@ router.get('/health', async (req, res) => {
       endpoints: {
         '/new-contact': 'ACTIVE - Lead-to-Call automatico',
         '/new-tag': 'placeholder',
-        '/new-note': 'placeholder', 
+        '/new-note': 'placeholder',
         '/pipeline-stage-changed': 'placeholder',
         '/opportunity-status-changed': 'placeholder',
+        '/update-total-calls': 'ACTIVE - Aggiornamento chiamate totali CloudTalk',
         '/stats': 'ACTIVE - Statistiche distribuzione',
         '/analytics': 'ACTIVE - Analytics dettagliati',
         '/recent-processes': 'ACTIVE - Processi recenti',
@@ -301,6 +409,36 @@ router.get('/health', async (req, res) => {
     res.status(500).json({
       service: 'GHL → CloudTalk Webhooks',
       status: 'error',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * Debug system status
+ * GET /api/ghl-webhooks/debug-agents
+ */
+router.get('/debug-agents', async (req, res) => {
+  try {
+    log('🔍 Debug agents endpoint chiamato');
+
+    // Import agent distribution service
+    const agentDistributionService = (await import('../services/agent-distribution-service.js')).default;
+
+    const debugStatus = await agentDistributionService.debugSystemStatus();
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      debugData: debugStatus,
+      message: 'Check console logs for detailed agent status'
+    });
+
+  } catch (error) {
+    logError('Error in debug-agents endpoint:', error);
+    res.status(500).json({
+      success: false,
       error: error.message,
       timestamp: new Date().toISOString()
     });

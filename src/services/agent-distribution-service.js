@@ -446,6 +446,79 @@ class AgentDistributionService {
     await this.saveState();
     log('🔄 Stato distribuzione resettato');
   }
+
+  /**
+   * Debug method: Get detailed system status for troubleshooting
+   */
+  async debugSystemStatus() {
+    try {
+      console.log('\n🔍 ===== DEBUG SYSTEM STATUS =====');
+      
+      // 1. Check all agents raw data
+      console.log('\n📋 STEP 1: Raw Agent Data from CloudTalk');
+      const response = await makeCloudTalkRequest('/agents/index.json');
+      const allAgents = response?.data?.responseData?.data || [];
+      
+      console.log(`Total agents in CloudTalk: ${allAgents.length}`);
+      allAgents.forEach((item, index) => {
+        const agent = item.Agent;
+        console.log(`  ${index + 1}. ${agent.firstname} ${agent.lastname} (ID: ${agent.id})`);
+        console.log(`     Status: "${agent.availability_status}"`);
+        console.log(`     Email: ${agent.email}`);
+        console.log(`     Extension: ${agent.extension}`);
+        console.log(`     Default Number: ${agent.default_number}`);
+      });
+
+      // 2. Check filtered available agents
+      console.log('\n✅ STEP 2: Filtered Available Agents');
+      const availableAgents = await this.getAvailableAgents();
+      console.log(`Available agents after filtering: ${availableAgents.length}`);
+      availableAgents.forEach((agent, index) => {
+        console.log(`  ${index + 1}. ${agent.name} (ID: ${agent.id}) - Status: ${agent.status}`);
+      });
+
+      // 3. Check distribution state
+      console.log('\n🎯 STEP 3: Round Robin State');
+      console.log(`Last agent ID: ${this.lastDistributionState.lastAgentId}`);
+      console.log(`Last distribution: ${this.lastDistributionState.lastDistributionTime}`);
+      console.log(`Distribution history (last 5):`);
+      this.lastDistributionState.distributionHistory.slice(0, 5).forEach((hist, index) => {
+        console.log(`  ${index + 1}. ${hist.agentName} (${hist.agentId}) at ${hist.timestamp}`);
+        console.log(`     Reason: ${hist.reason}, Fallback: ${hist.fallbackUsed}`);
+      });
+
+      // 4. Simulate next agent selection
+      console.log('\n🎲 STEP 4: Next Agent Selection Simulation');
+      if (availableAgents.length > 0) {
+        const nextSelection = this.selectAgentWithFallback(availableAgents);
+        console.log(`Next agent would be: ${nextSelection.agent?.name} (${nextSelection.agent?.id})`);
+        console.log(`Selection reason: ${nextSelection.reason}`);
+        console.log(`Fallback used: ${nextSelection.fallbackUsed}`);
+      } else {
+        console.log('❌ No agents available for selection');
+      }
+
+      console.log('\n🔍 ===== END DEBUG STATUS =====\n');
+
+      return {
+        totalAgents: allAgents.length,
+        availableAgents: availableAgents.length,
+        lastAgentId: this.lastDistributionState.lastAgentId,
+        distributionHistory: this.lastDistributionState.distributionHistory.slice(0, 5),
+        rawAgentData: allAgents.map(item => ({
+          id: item.Agent.id,
+          name: `${item.Agent.firstname} ${item.Agent.lastname}`,
+          status: item.Agent.availability_status,
+          email: item.Agent.email
+        })),
+        filteredAgents: availableAgents
+      };
+
+    } catch (error) {
+      console.error('❌ Error in debug system status:', error);
+      return { error: error.message };
+    }
+  }
 }
 
 // Istanza singleton

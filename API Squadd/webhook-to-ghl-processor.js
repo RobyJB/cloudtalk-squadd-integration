@@ -151,6 +151,24 @@ async function processRecordingReady(contact, payload) {
         try {
           const ghlWebhookUrl = 'https://services.leadconnectorhq.com/hooks/DfxGoORmPoL5Z1OcfYJM/webhook-trigger/873baa5c-928e-428a-ac68-498d954a9ff7';
 
+          // 🔧 FIX: Recupera agent_id se mancante dal payload
+          let agentId = payload.agent_id;
+          if (!agentId && payload.call_id) {
+            console.log('⚠️ agent_id mancante, recupero da CloudTalk API...');
+            try {
+              const { getCallDetails } = await import('../API CloudTalk/GET/get-call-details.js');
+              const callDetails = await getCallDetails(payload.call_id);
+              if (callDetails.success && callDetails.responseData?.data?.agent_id) {
+                agentId = callDetails.responseData.data.agent_id;
+                console.log(`✅ agent_id recuperato: ${agentId}`);
+              } else {
+                console.log('⚠️ Impossibile recuperare agent_id da CloudTalk API');
+              }
+            } catch (agentError) {
+              console.error('❌ Errore recuperando agent_id:', agentError.message);
+            }
+          }
+
           const ghlPayload = {
             event_type: 'cloudtalk_call_processed',
             call_type: 'voicemail',
@@ -159,7 +177,7 @@ async function processRecordingReady(contact, payload) {
             recording_url: payload.recording_url,
             internal_number: payload.internal_number,
             external_number: payload.external_number,
-            agent_id: payload.agent_id,
+            agent_id: agentId, // 🔧 Usa agent_id recuperato se necessario
             contact_id: contact.id,
             detection_method: isEmptyTranscription ? 'empty_transcription' : 'ai_analysis',
             transcription_length: transcriptionText?.length || 0,
@@ -253,25 +271,15 @@ async function processRecordingReady(contact, payload) {
         console.log(`⚠️ Audio upload failed: ${uploadResult.error}`);
 
         // Fallback to regular note with transcription
-        noteText = `⚠️ Upload audio fallito: ${uploadResult.error}
-
-${formatTranscriptionForGHL(transcription.result)}`;
+        noteText = `⚠️ Upload audio fallito: ${uploadResult.error}\n\n${formatTranscriptionForGHL(transcription.result)}`;
       }
 
     } else {
       console.log(`⚠️ Transcription failed: ${transcription.error}`);
-      noteText = `⚠️ Trascrizione automatica fallita: ${transcription.error}
-
-📞 Call ID: ${payload.call_id}
-🔗 Recording URL: ${payload.recording_url}
-🎧 Clicca sul link sopra per ascoltare la registrazione`;
+      noteText = `⚠️ Trascrizione automatica fallita: ${transcription.error}\n\n📞 Call ID: ${payload.call_id}\n🔗 Recording URL: ${payload.recording_url}\n🎧 Clicca sul link sopra per ascoltare la registrazione`;
     }
   } else {
-    noteText = `✅ Registrazione disponibile per la revisione
-
-📞 Call ID: ${payload.call_id}
-🔗 Recording URL: ${payload.recording_url}
-🎧 Clicca sul link sopra per ascoltare la registrazione`;
+    noteText = `✅ Registrazione disponibile per la revisione\n\n📞 Call ID: ${payload.call_id}\n🔗 Recording URL: ${payload.recording_url}\n🎧 Clicca sul link sopra per ascoltare la registrazione`;
   }
 
   const result = await addNoteToGHLContact(contact.id, noteText);

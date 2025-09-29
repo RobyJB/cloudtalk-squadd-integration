@@ -40,10 +40,10 @@ class LeadToCallService {
     try {
       const timestamp = Date.now();
       const commandId = `ghl_lead_${leadData.id || timestamp}_${timestamp}`;
-      
+
       // Fix: usa formato PUT API corretto per CloudTalk
       const fullName = `${leadData.first_name || ''} ${leadData.last_name || ''}`.trim();
-      
+
       const contactData = {
         name: fullName || leadData.full_name || leadData.name || 'Lead Senza Nome',
         company: leadData.company || 'GoHighLevel Lead',
@@ -59,37 +59,81 @@ class LeadToCallService {
         ]
       };
 
+      // Aggiungi custom fields mappati da GHL
+      const customFields = [];
+
+      // 1. Mappa contact_id → CloudTalk "Squadd ID" (attribute_id: 10133)
+      if (leadData.contact_id) {
+        customFields.push({
+          attribute_id: "10133",
+          value: leadData.contact_id
+        });
+        log(`🔗 Aggiunto custom field "Squadd ID": ${leadData.contact_id}`);
+      }
+
+      // 2. Mappa customData.totaleChiamate → CloudTalk "# di chiamate totali" (attribute_id: 10135)
+      if (leadData.customData && leadData.customData.totaleChiamate) {
+        customFields.push({
+          attribute_id: "10135",
+          value: leadData.customData.totaleChiamate
+        });
+        log(`📞 Aggiunto custom field "# di chiamate totali": ${leadData.customData.totaleChiamate}`);
+      }
+
+      // Aggiungi ContactAttribute al payload solo se ci sono custom fields da mappare
+      if (customFields.length > 0) {
+        contactData.ContactAttribute = customFields;
+        log(`✅ ${customFields.length} custom fields aggiunti al payload CloudTalk`);
+      }
+
       log(`📝 Creando contatto in CloudTalk: ${contactData.name}`);
       log(`📞 Telefono: ${contactData.ContactNumber?.[0]?.public_number || 'N/A'}`);
       log(`📧 Email: ${contactData.ContactEmail?.[0]?.email || 'N/A'}`);
       log(`✅ FORMATO PUT API CORRETTO!`);
-      
-      // DEBUG: Log del payload completo che viene inviato
-      console.log('🚨 DEBUG - PAYLOAD INVIATO A CLOUDTALK:');
-      console.log(JSON.stringify(contactData, null, 2));
 
       const response = await makeCloudTalkRequest('/contacts/add.json', {
         method: 'PUT',
         body: JSON.stringify(contactData)
       });
-      
-      // DEBUG: Log della risposta completa
-      console.log('🚨 DEBUG - RISPOSTA CLOUDTALK:');
-      console.log(JSON.stringify(response, null, 2));
 
-      if (response?.data?.id) {
-        const contactId = response.data.id;
-        
+      log(`🔍 Analizzando response structure:`, response);
+
+      // 🔧 FIX: Controlla multiple possibili strutture della response
+      let contactId = null;
+      
+      // Possibilità 1: response.responseData.data.id (structure from error message)
+      if (response?.responseData?.data?.id) {
+        contactId = response.responseData.data.id;
+        log(`✅ Contact ID trovato in response.responseData.data.id: ${contactId}`);
+      }
+      // Possibilità 2: response.data.responseData.data.id (original logic)
+      else if (response?.data?.responseData?.data?.id) {
+        contactId = response.data.responseData.data.id;
+        log(`✅ Contact ID trovato in response.data.responseData.data.id: ${contactId}`);
+      }
+      // Possibilità 3: response.data.id (simple structure)
+      else if (response?.data?.id) {
+        contactId = response.data.id;
+        log(`✅ Contact ID trovato in response.data.id: ${contactId}`);
+      }
+      // Possibilità 4: response.id (direct structure)
+      else if (response?.id) {
+        contactId = response.id;
+        log(`✅ Contact ID trovato in response.id: ${contactId}`);
+      }
+
+      if (contactId) {
         log(`✅ Contatto creato con successo: ID ${contactId}`);
-        
+
         return {
           success: true,
           contactId: contactId,
           commandId: commandId,
-          cloudTalkData: response.data
+          cloudTalkData: response.responseData?.data || response.data?.responseData?.data || response.data || response
         };
       } else {
-        throw new Error(`Creazione contatto fallita: ${JSON.stringify(response.data)}`);
+        log(`❌ Structure response non riconosciuta:`, JSON.stringify(response, null, 2));
+        throw new Error(`Creazione contatto fallita: ID non trovato nella response. Structure: ${JSON.stringify(response)}`);
       }
 
     } catch (error) {

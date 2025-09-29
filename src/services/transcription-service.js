@@ -438,6 +438,98 @@ async function cleanupAudioFile(filePath) {
 }
 
 /**
+ * Check if audio transcription is comprehensible or just placeholder text
+ * Detects Amara.org and similar placeholder patterns
+ * @param {string} transcription - The transcription text to analyze
+ * @returns {object} - { isComprehensible: boolean, reason: string, detectedPatterns: array }
+ */
+function checkAudioComprehensible(transcription) {
+  if (!transcription || typeof transcription !== 'string') {
+    return {
+      isComprehensible: false,
+      reason: 'Empty or invalid transcription',
+      detectedPatterns: ['empty_transcription']
+    };
+  }
+
+  const cleanText = transcription.trim().toLowerCase();
+  const detectedPatterns = [];
+
+  // Patterns that indicate incomprehensible audio
+  const placeholderPatterns = [
+    /sottotitoli creati dalla comunità amara\.org/gi,
+    /subtitles created by the amara\.org community/gi,
+    /sottotitoli creati da amara\.org/gi,
+    /created by amara\.org/gi,
+    /amara\.org community/gi,
+    /sottotitoli automatici/gi,
+    /automatic subtitles/gi,
+    /generated subtitles/gi,
+    /transcript not available/gi,
+    /trascrizione non disponibile/gi
+  ];
+
+  // Check each pattern
+  placeholderPatterns.forEach((pattern, index) => {
+    if (pattern.test(transcription)) {
+      detectedPatterns.push(`placeholder_pattern_${index + 1}`);
+    }
+  });
+
+  // If patterns detected, check if the transcription is ONLY placeholder text
+  if (detectedPatterns.length > 0) {
+    // Remove all placeholder text and see what's left
+    let textWithoutPlaceholders = transcription;
+
+    placeholderPatterns.forEach(pattern => {
+      textWithoutPlaceholders = textWithoutPlaceholders.replace(pattern, '').trim();
+    });
+
+    // Remove common noise characters and whitespace
+    const cleanedText = textWithoutPlaceholders
+      .replace(/[.\-_,\s\n\r\t]+/g, ' ')
+      .trim();
+
+    log(`🔍 Audio comprehension check:`);
+    log(`   Original length: ${transcription.length} chars`);
+    log(`   After placeholder removal: ${cleanedText.length} chars`);
+    log(`   Detected patterns: ${detectedPatterns.join(', ')}`);
+    log(`   Remaining text: "${cleanedText.substring(0, 100)}${cleanedText.length > 100 ? '...' : ''}"`);
+
+    // If very little meaningful text remains, consider it incomprehensible
+    if (cleanedText.length < 20) {
+      return {
+        isComprehensible: false,
+        reason: `Transcription contains mostly placeholder text (${detectedPatterns.length} patterns detected, only ${cleanedText.length} meaningful chars)`,
+        detectedPatterns: detectedPatterns,
+        originalLength: transcription.length,
+        cleanedLength: cleanedText.length,
+        remainingText: cleanedText
+      };
+    }
+
+    // If substantial text remains after removing placeholders, it's comprehensible
+    log(`✅ Substantial text found after placeholder removal - considering comprehensible`);
+  }
+
+  // Additional check: very short transcriptions (but not empty)
+  if (cleanText.length > 0 && cleanText.length < 10) {
+    return {
+      isComprehensible: false,
+      reason: `Transcription too short (${cleanText.length} chars)`,
+      detectedPatterns: ['too_short']
+    };
+  }
+
+  // If we get here, the audio is comprehensible
+  return {
+    isComprehensible: true,
+    reason: 'Transcription appears to contain meaningful content',
+    detectedPatterns: detectedPatterns // May contain patterns but still comprehensible
+  };
+}
+
+/**
  * Complete transcription pipeline
  * @param {string} audioUrl - URL of the recording to transcribe
  * @returns {Promise<{success: boolean, result?: object, error?: string}>}
@@ -468,8 +560,36 @@ export async function processRecordingTranscription(audioUrl) {
       };
     }
 
-    // Step 3: Extract key points
-    const analysisResult = await extractKeyPoints(transcriptionResult.transcription);
+    // Step 2.5: 🆕 Check for incomprehensible audio (Amara.org placeholders)
+    const transcription = transcriptionResult.transcription;
+    const audioComprehensionCheck = checkAudioComprehensible(transcription);
+
+    if (!audioComprehensionCheck.isComprehensible) {
+      log(`❓ Audio detected as incomprehensible: ${audioComprehensionCheck.reason}`);
+
+      // Read audio buffer for potential upload
+      const audioBuffer = await fs.readFile(tempFilePath);
+
+      return {
+        success: true,
+        result: {
+          transcription: transcription,
+          analysis: {
+            call_type: 'incomprehensible_audio',
+            classification: 'AUDIO_NOT_COMPREHENSIBLE',
+            reason: audioComprehensionCheck.reason,
+            detected_patterns: audioComprehensionCheck.detectedPatterns
+          },
+          audioUrl: audioUrl,
+          audioBuffer: audioBuffer,
+          processedAt: new Date().toISOString(),
+          incomprehensibleAudio: true
+        }
+      };
+    }
+
+    // Step 3: Extract key points (only for comprehensible audio)
+    const analysisResult = await extractKeyPoints(transcription);
     if (!analysisResult.success) {
       return {
         success: false,

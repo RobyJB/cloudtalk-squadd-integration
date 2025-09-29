@@ -143,83 +143,7 @@ async function processRecordingReady(contact, payload) {
 
         const result = await addNoteToGHLContact(contact.id, noteText);
 
-        // 🆕 AUDIO INCOMPRENSIBILE: Invia webhook a GoHighLevel
-        let ghlWebhookResult = null;
-        try {
-          const ghlWebhookUrl = 'https://services.leadconnectorhq.com/hooks/DfxGoORmPoL5Z1OcfYJM/webhook-trigger/873baa5c-928e-428a-ac68-498d954a9ff7';
-
-          // 🔧 FIX: Recupera agent_id se mancante dal payload
-          let agentId = payload.agent_id;
-          if (!agentId && payload.call_id) {
-            console.log('⚠️ agent_id mancante, recupero da CloudTalk API...');
-            try {
-              const { getCallDetails } = await import('../API CloudTalk/GET/get-call-details.js');
-              const callDetails = await getCallDetails(payload.call_id);
-              if (callDetails.success && callDetails.responseData?.data?.agent_id) {
-                agentId = callDetails.responseData.data.agent_id;
-                console.log(`✅ agent_id recuperato: ${agentId}`);
-              } else {
-                console.log('⚠️ Impossibile recuperare agent_id da CloudTalk API');
-              }
-            } catch (agentError) {
-              console.error('❌ Errore recuperando agent_id:', agentError.message);
-            }
-          }
-
-          const ghlPayload = {
-            event_type: 'cloudtalk_call_processed',
-            call_type: 'incomprehensible_audio',
-            timestamp: new Date().toISOString(),
-            call_id: payload.call_id,
-            recording_url: payload.recording_url,
-            internal_number: payload.internal_number,
-            external_number: payload.external_number,
-            agent_id: agentId,
-            contact_id: contact.id,
-            detection_method: 'ai_analysis',
-            detection_reason: aiAnalysisResult.reason,
-            detected_patterns: aiAnalysisResult.detected_patterns,
-            transcription_length: transcriptionText?.length || 0,
-            original_transcription_length: aiAnalysisResult.originalLength,
-            cleaned_transcription_length: aiAnalysisResult.cleanedLength,
-            webhook_received_at: new Date().toISOString(),
-            source: 'cloudtalk_middleware'
-          };
-
-          console.log('📤 Inviando webhook a GHL per AUDIO INCOMPRENSIBILE');
-          console.log('📋 Payload GHL:', JSON.stringify(ghlPayload, null, 2));
-
-          const ghlResponse = await fetch(ghlWebhookUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'User-Agent': 'CloudTalk-Middleware/1.0'
-            },
-            body: JSON.stringify(ghlPayload)
-          });
-
-          if (ghlResponse.ok) {
-            const ghlResponseData = await ghlResponse.text();
-            ghlWebhookResult = {
-              success: true,
-              message: 'Audio incomprensibile webhook inviato a GoHighLevel con successo',
-              response: ghlResponseData
-            };
-            console.log('✅ Webhook GHL per AUDIO INCOMPRENSIBILE inviato con successo:', ghlResponse.status);
-          } else {
-            const errorText = await ghlResponse.text();
-            throw new Error(`GHL webhook failed: ${ghlResponse.status} - ${errorText}`);
-          }
-
-        } catch (ghlWebhookError) {
-          console.error('❌ GHL Webhook per audio incomprensibile failed:', ghlWebhookError.message);
-
-          ghlWebhookResult = {
-            success: false,
-            error: ghlWebhookError.message,
-            message: 'GHL webhook failed but note processing continues'
-          };
-        }
+        // ✅ AUDIO INCOMPRENSIBILE: Solo nota (nessun webhook)
 
         return {
           action: 'incomprehensible_audio_detected',
@@ -231,8 +155,7 @@ async function processRecordingReady(contact, payload) {
           transcriptionText: transcriptionText,
           detectionReason: aiAnalysisResult.reason,
           detectedPatterns: aiAnalysisResult.detected_patterns,
-          transcription: transcriptionResult,
-          ghlWebhookResult: ghlWebhookResult || { success: false, reason: 'Not processed' }
+          transcription: transcriptionResult
         };
       }
 

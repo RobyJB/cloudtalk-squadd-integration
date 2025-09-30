@@ -404,7 +404,8 @@ async function handleDisqualificationOpportunities(contactPhone, disqualificatio
 
     // Step 4: Update each open opportunity to lost with delay
     const updateResults = [];
-    const lostReason = `Disqualified - ${disqualificationTag}`;
+    // Use the exact tag without prefix to match GHL's expected values
+    const lostReason = disqualificationTag;
 
     for (let i = 0; i < openOpportunities.length; i++) {
       const opportunity = openOpportunities[i];

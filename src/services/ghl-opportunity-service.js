@@ -156,28 +156,27 @@ async function updateOpportunityToLost(opportunityId, lostReason, correlationId)
     return { success: false, error: 'Missing API configuration' };
   }
 
-  const url = `https://services.leadconnectorhq.com/opportunities/${opportunityId}`;
+  // FIXED: Use /status endpoint (correct endpoint for status updates)
+  const statusUrl = `https://services.leadconnectorhq.com/opportunities/${opportunityId}/status`;
 
-  // First attempt: try with customFields
-  let requestBody = {
-    status: 'lost',
-    customFields: {
-      lost_reason: lostReason
-    }
+  // Simple body - just update status (most reliable)
+  const requestBody = {
+    status: 'lost'
   };
 
   logOpportunity('info', correlationId, {
-    action: 'update_opportunity_to_lost',
+    action: 'update_opportunity_to_lost_start',
     opportunity_id: opportunityId,
     lost_reason: lostReason,
-    attempt: 'with_custom_fields'
+    endpoint: statusUrl
   });
 
   try {
+    // Step 1: Update status to lost
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
-    let response = await fetch(url, {
+    const response = await fetch(statusUrl, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${GHL_API_KEY}`,
@@ -190,56 +189,119 @@ async function updateOpportunityToLost(opportunityId, lostReason, correlationId)
 
     clearTimeout(timeoutId);
 
-    let responseData = await response.json();
-
-    // If we get 400 error, try without customFields
-    if (response.status === 400) {
-      logOpportunity('info', correlationId, {
-        action: 'retry_without_custom_fields',
-        opportunity_id: opportunityId,
-        initial_error: responseData
-      });
-
-      // Second attempt: try without customFields
-      requestBody = {
-        status: 'lost'
-      };
-
-      const controller2 = new AbortController();
-      const timeoutId2 = setTimeout(() => controller2.abort(), API_TIMEOUT);
-
-      response = await fetch(url, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${GHL_API_KEY}`,
-          'Version': '2021-07-28',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller2.signal
-      });
-
-      clearTimeout(timeoutId2);
-      responseData = await response.json();
-    }
+    const responseData = await response.json();
 
     if (!response.ok) {
       logOpportunity('error', correlationId, {
-        action: 'update_opportunity_failed',
+        action: 'update_status_failed',
         opportunity_id: opportunityId,
-        status: response.status,
+        status_code: response.status,
         error: responseData
       });
-      return { success: false, error: `API error: ${response.status}` };
+      return {
+        success: false,
+        error: `API error ${response.status}: ${JSON.stringify(responseData)}`
+      };
     }
 
     logOpportunity('info', correlationId, {
-      action: 'opportunity_updated_to_lost',
+      action: 'update_status_success',
       opportunity_id: opportunityId,
       response: responseData
     });
 
-    return { success: true, data: responseData };
+    // Step 2: Try to update custom field lost_reason
+    // Note: This is a separate call to the base endpoint with customFields array format
+    if (lostReason) {
+      try {
+        const updateUrl = `https://services.leadconnectorhq.com/opportunities/${opportunityId}`;
+        const customFieldBody = {
+          customFields: [
+            {
+              key: 'lost_reason',
+              field_value: lostReason
+            }
+          ]
+        };
+
+        logOpportunity('info', correlationId, {
+          action: 'update_custom_field_start',
+          opportunity_id: opportunityId,
+          custom_field: 'lost_reason',
+          value: lostReason
+        });
+
+        const controller2 = new AbortController();
+        const timeoutId2 = setTimeout(() => controller2.abort(), API_TIMEOUT);
+
+        const customFieldResponse = await fetch(updateUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${GHL_API_KEY}`,
+            'Version': '2021-07-28',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(customFieldBody),
+          signal: controller2.signal
+        });
+
+        clearTimeout(timeoutId2);
+
+        const customFieldData = await customFieldResponse.json();
+
+        if (customFieldResponse.ok) {
+          logOpportunity('info', correlationId, {
+            action: 'update_custom_field_success',
+            opportunity_id: opportunityId
+          });
+          return {
+            success: true,
+            statusUpdated: true,
+            customFieldUpdated: true,
+            response: responseData
+          };
+        } else {
+          // Custom field update failed, but status was updated
+          logOpportunity('warn', correlationId, {
+            action: 'update_custom_field_failed',
+            opportunity_id: opportunityId,
+            status_code: customFieldResponse.status,
+            error: customFieldData,
+            note: 'Status updated successfully despite custom field failure'
+          });
+          return {
+            success: true,
+            statusUpdated: true,
+            customFieldUpdated: false,
+            customFieldError: customFieldData,
+            response: responseData
+          };
+        }
+      } catch (customFieldError) {
+        // Custom field update error, but status was updated
+        logOpportunity('warn', correlationId, {
+          action: 'update_custom_field_exception',
+          opportunity_id: opportunityId,
+          error: customFieldError.message,
+          note: 'Status updated successfully despite custom field exception'
+        });
+        return {
+          success: true,
+          statusUpdated: true,
+          customFieldUpdated: false,
+          customFieldError: customFieldError.message,
+          response: responseData
+        };
+      }
+    }
+
+    // No custom field requested, just status update
+    return {
+      success: true,
+      statusUpdated: true,
+      customFieldUpdated: false,
+      response: responseData
+    };
 
   } catch (error) {
     if (error.name === 'AbortError') {

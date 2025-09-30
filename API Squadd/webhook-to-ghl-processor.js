@@ -186,11 +186,15 @@ async function processRecordingReady(contact, payload) {
             try {
               const { getCallDetails } = await import('../API CloudTalk/GET/get-call-details.js');
               const callDetails = await getCallDetails(payload.call_id);
-              if (callDetails.success && callDetails.responseData?.data?.agent_id) {
-                agentId = callDetails.responseData.data.agent_id;
-                console.log(`✅ agent_id recuperato: ${agentId}`);
+
+              // Extract agent_id from call_steps (getCallDetails returns data directly, not wrapped)
+              const agentStep = callDetails?.call_steps?.find(step => step.type === 'agent');
+              if (agentStep?.id) {
+                agentId = agentStep.id;
+                console.log(`✅ agent_id recuperato: ${agentId} (${agentStep.name || 'Unknown'})`);
               } else {
                 console.log('⚠️ Impossibile recuperare agent_id da CloudTalk API');
+                console.log('📋 Call steps:', JSON.stringify(callDetails?.call_steps, null, 2));
               }
             } catch (agentError) {
               console.error('❌ Errore recuperando agent_id:', agentError.message);
@@ -205,7 +209,7 @@ async function processRecordingReady(contact, payload) {
             recording_url: payload.recording_url,
             internal_number: payload.internal_number,
             external_number: payload.external_number,
-            agent_id: agentId, // 🔧 Usa agent_id recuperato se necessario
+            agent_id: agentId || null, // 🔧 Usa agent_id recuperato, null se non disponibile
             contact_id: contact.id,
             detection_method: isEmptyTranscription ? 'empty_transcription' : 'ai_analysis',
             transcription_length: transcriptionText?.length || 0,

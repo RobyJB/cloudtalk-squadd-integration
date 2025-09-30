@@ -1,5 +1,4 @@
 import { makeCloudTalkRequest } from '../config.js';
-import { processSingleCallRecording } from '../recording-integration.js';
 
 /**
  * CloudTalk Call Details GET API
@@ -73,36 +72,9 @@ async function getCallDetails(callId, params = {}) {
     if (data?.direction && data?.status) console.log(`   📊 ${data.direction} | ${data.status}`);
     if (data?.call_times) console.log(`   ⏱️  Total: ${data.call_times.total_time}s (talk ${data.call_times.talking_time}s)`);
 
-    // Auto-download recording if enabled and call has recording
+    // Auto-download recording disabled (feature not implemented)
     if (autoDownloadRecording && data?.recorded === true) {
-      console.log('\n🎵 Auto-downloading call recording...');
-      try {
-        const callMetadata = {
-          duration: data.call_times?.talking_time,
-          agent_name: data.call_steps?.find(step => step.type === 'agent')?.name,
-          phone_from: data.contact?.number,
-          phone_to: data.internal_number?.number,
-          call_type: data.direction,
-          started_at: data.date,
-          contact_name: data.contact?.name,
-          rating: data.call_rating
-        };
-
-        const recordingResult = await processSingleCallRecording(callId, callMetadata);
-
-        if (recordingResult.success) {
-          if (recordingResult.already_exists) {
-            console.log('⏭️  Recording already exists in database');
-          } else {
-            console.log(`✅ Recording downloaded and saved (${recordingResult.data?.file_size || 'unknown'} bytes)`);
-          }
-        } else {
-          console.log(`⚠️  Failed to download recording: ${recordingResult.error}`);
-        }
-      } catch (error) {
-        console.error('⚠️  Recording auto-download failed:', error.message);
-        // Don't throw - let the main function continue
-      }
+      console.log('\n⚠️  Auto-download recording feature not implemented');
     }
 
     return data;

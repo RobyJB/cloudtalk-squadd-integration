@@ -29,10 +29,10 @@ const THRESHOLDS = {
 
 // Nomi tag campagne (configurabili via ENV)
 const CAMPAIGN_TAGS = {
-  NUOVI_LEAD: process.env.CLOUDTALK_TAG_NUOVI_LEAD || 'Nuovi Lead',
-  LEAD_RECENTI: process.env.CLOUDTALK_TAG_LEAD_RECENTI || 'lead_recenti',  // New tag for 3-9 attempts
-  FOLLOW_UP: process.env.CLOUDTALK_TAG_FOLLOW_UP || 'Follow Up',
-  MANCATA_RISPOSTA: process.env.CLOUDTALK_TAG_MANCATA_RISPOSTA || 'Mancata Risposta'
+  NUOVI_LEAD: process.env.CLOUDTALK_TAG_NUOVI_LEAD || 'nuovi_lead',
+  LEAD_RECENTI: process.env.CLOUDTALK_TAG_LEAD_RECENTI || 'lead_recenti',
+  FOLLOW_UP: process.env.CLOUDTALK_TAG_FOLLOW_UP || 'Follow Up',  // Legacy, not used
+  MANCATA_RISPOSTA: process.env.CLOUDTALK_TAG_MANCATA_RISPOSTA || 'mancata_risposta'
 };
 
 // Campo custom per tentativi
@@ -51,11 +51,14 @@ const DISQUALIFICATION_TAGS = [
 
 // Campaign tags to remove when disqualified (exact match, case-sensitive)
 const CAMPAIGN_TAGS_TO_REMOVE = [
-  'nuovi_lead',     // lowercase with underscore
-  'Nuovi Lead',     // standard format
-  'mancata_risposta',  // lowercase with underscore
-  'followup',       // lowercase no space
-  'lead_recenti'    // lowercase with underscore
+  'nuovi_lead',           // lowercase with underscore
+  'Nuovi Lead',           // legacy format with capitals
+  'lead_recenti',         // lowercase with underscore
+  'Lead Recenti',         // legacy format with capitals
+  'mancata_risposta',     // lowercase with underscore
+  'Mancata Risposta',     // legacy format with capitals
+  'followup',             // lowercase no space
+  'Follow Up'             // legacy format with capitals
 ];
 
 // Cache campagne (TTL 5 minuti)

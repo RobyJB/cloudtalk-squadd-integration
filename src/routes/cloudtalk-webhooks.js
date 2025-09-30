@@ -5,6 +5,7 @@ import { saveWebhookPayload } from '../utils/webhook-payload-logger.js';
 import { isWebhookAlreadyProcessed, markWebhookAsProcessed } from '../utils/webhook-deduplication.js';
 import { validateAndEnhanceWebhookPayload, extractDeduplicationKey, logValidationSummary } from '../utils/webhook-validation.js';
 import { processCallEndedWebhook } from '../services/cloudtalk-campaign-automation.js';
+import { processCloudTalkCallEndedForGHL } from '../services/ghl-call-attempts-service.js';
 import { addNoteToGHLContact } from '../../API Squadd/tests/add-note.js';
 import googleSheetsService from '../services/google-sheets-service.js';
 
@@ -262,6 +263,29 @@ async function handleCallEndedWebhook(req, res) {
             log(`📈 Campagna spostata: ${campaignResult.campaign.source} → ${campaignResult.campaign.target}`);
           }
 
+          // 2.5. AGGIORNA ANCHE I TENTATIVI IN GHL
+          log(`🔄 Aggiornamento tentativi GoHighLevel...`);
+          let ghlAttemptsResult = null;
+          try {
+            ghlAttemptsResult = await processCloudTalkCallEndedForGHL(enhancedPayload, `${correlationId}-ghl`);
+
+            if (ghlAttemptsResult.success) {
+              log(`✅ Tentativi GHL aggiornati con successo!`);
+              log(`👤 Contatto GHL: ${ghlAttemptsResult.contact?.name} (${ghlAttemptsResult.contact?.id})`);
+              log(`📞 Tentativi GHL: ${ghlAttemptsResult.attempts?.previous} → ${ghlAttemptsResult.attempts?.new}`);
+              campaignResult.ghlCallAttempts = ghlAttemptsResult;
+            } else {
+              log(`⚠️ Tentativi GHL non aggiornati: ${ghlAttemptsResult.reason}`);
+              campaignResult.ghlCallAttempts = ghlAttemptsResult;
+            }
+          } catch (ghlAttemptsError) {
+            logError(`❌ Errore aggiornamento tentativi GHL: ${ghlAttemptsError.message}`);
+            campaignResult.ghlCallAttempts = {
+              success: false,
+              error: ghlAttemptsError.message
+            };
+          }
+
           // 3. TERZA: Crea nota per MISSED CALL nel contatto GHL
           try {
             const noteText = '📵 TENTATIVO SENZA RISPOSTA - CLOUDTALK';
@@ -354,14 +378,37 @@ async function handleCallEndedWebhook(req, res) {
       let campaignResult = null;
       try {
         campaignResult = await processCallEndedWebhook(enhancedPayload, correlationId);
-        
+
         if (campaignResult.success) {
           log(`✅ Campaign Automation completata con successo per ANSWERED CALL!`);
           log(`👤 Contatto: ${campaignResult.contact?.name} (${campaignResult.contact?.id})`);
           log(`🔢 Tentativi: ${campaignResult.attempts?.previous} → ${campaignResult.attempts?.new}`);
-          
+
           if (campaignResult.campaign) {
             log(`📈 Campagna spostata: ${campaignResult.campaign.source} → ${campaignResult.campaign.target}`);
+          }
+
+          // 1.5. AGGIORNA ANCHE I TENTATIVI IN GHL
+          log(`🔄 Aggiornamento tentativi GoHighLevel...`);
+          let ghlAttemptsResult = null;
+          try {
+            ghlAttemptsResult = await processCloudTalkCallEndedForGHL(enhancedPayload, `${correlationId}-ghl`);
+
+            if (ghlAttemptsResult.success) {
+              log(`✅ Tentativi GHL aggiornati con successo!`);
+              log(`👤 Contatto GHL: ${ghlAttemptsResult.contact?.name} (${ghlAttemptsResult.contact?.id})`);
+              log(`📞 Tentativi GHL: ${ghlAttemptsResult.attempts?.previous} → ${ghlAttemptsResult.attempts?.new}`);
+              campaignResult.ghlCallAttempts = ghlAttemptsResult;
+            } else {
+              log(`⚠️ Tentativi GHL non aggiornati: ${ghlAttemptsResult.reason}`);
+              campaignResult.ghlCallAttempts = ghlAttemptsResult;
+            }
+          } catch (ghlAttemptsError) {
+            logError(`❌ Errore aggiornamento tentativi GHL: ${ghlAttemptsError.message}`);
+            campaignResult.ghlCallAttempts = {
+              success: false,
+              error: ghlAttemptsError.message
+            };
           }
         } else {
           log(`⚠️ Campaign Automation saltata: ${campaignResult.reason}`);
@@ -467,25 +514,34 @@ async function handleCallStartedWebhook(req, res) {
   }
 
   try {
-    // Mark webhook as processed (solo logging, niente Google Sheets)
-    if (callId) {
+    // Process webhook with CueCard generation (Google Sheets handled separately by CloudTalk)
+    log(`🔄 Processing call-started with CueCard generation...`);
+    log(`📋 Note: Google Sheets processing happens via separate CloudTalk automation to /api/google-sheets-webhooks/call-data`);
+
+    const result = await processCloudTalkWebhook(enhancedPayload, webhookType);
+
+    if (result.success) {
       markWebhookAsProcessed(callId, webhookType);
+
+      log(`🎉 Call-started processed successfully with CueCard!`);
+      res.json({
+        success: true,
+        message: 'Call-started processed with CueCard generation',
+        timestamp: timestamp,
+        contact: result.contact,
+        result: result.result,
+        cueCardSent: result.result?.cueCardSent || false,
+        note: 'Google Sheets processing handled by separate CloudTalk automation'
+      });
+    } else {
+      logError(`⚠️ Call-started processing failed: ${result.error || result.reason}`);
+      res.status(400).json({
+        success: false,
+        error: result.error || result.reason,
+        webhookType: webhookType,
+        timestamp: timestamp
+      });
     }
-
-    log(`📋 Call-started webhook received - CloudTalk will handle Google Sheets directly`);
-    log(`ℹ️ This webhook is only for logging purposes`);
-
-    // Risposta finale - SOLO logging, Google Sheets gestito da CloudTalk direttamente
-    const response = {
-      success: true,
-      message: 'Call-started webhook logged - Google Sheets handled by CloudTalk automation',
-      timestamp: timestamp,
-      action: 'logged_only',
-      note: 'Google Sheets processing happens via separate CloudTalk automation to /api/google-sheets-webhooks/call-data'
-    };
-
-    log(`🎉 Call-started webhook completed - logging only!`);
-    res.json(response);
 
   } catch (error) {
     logError(`💥 Errore nel processamento call-started webhook: ${error.message}`);

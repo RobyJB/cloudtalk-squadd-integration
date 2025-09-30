@@ -60,7 +60,7 @@ function generateExistingContactCueCard(contact, callHistory, aiData, ghlNotes =
   const contactName = fullName || 'Contatto Sconosciuto';
   
   // Costruisci URL diretto al contatto GHL
-  const ghlContactUrl = `https://app.gohighlevel.com/location/${process.env.GHL_LOCATION_ID}/contacts/detail/${contact.id}`;
+  const ghlContactUrl = `https://app.squaddcrm.com/v2/location/${process.env.GHL_LOCATION_ID}/contacts/detail/${contact.id}`;
   
   // Calcola statistiche chiamate
   const totalCalls = callHistory?.length || 0;

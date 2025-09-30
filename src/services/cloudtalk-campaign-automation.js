@@ -3,6 +3,7 @@ import { getContactDetails } from '../../API CloudTalk/GET/get-contact-details.j
 import { getCampaigns } from '../../API CloudTalk/GET/get-campaigns.js';
 import { editContact } from '../../API CloudTalk/POST/post-edit-contact.js';
 import { searchGHLContactByPhone } from '../../API Squadd/tests/search-contact-by-phone.js';
+import { handleDisqualificationOpportunities } from './ghl-opportunity-service.js';
 import { log, logError } from '../logger.js';
 import fs from 'fs';
 import path from 'path';
@@ -46,7 +47,8 @@ const DISQUALIFICATION_TAGS = [
   'Bambino',
   'Fuori target',
   'Fuori budget',
-  'Dati errati'
+  'Dati errati',
+  'Non ora'
 ];
 
 // Campaign tags to remove when disqualified (exact match, case-sensitive)
@@ -684,18 +686,91 @@ async function handleDisqualification(contactId, contactData, disqualificationTa
 
     if (updateResult.success) {
       logAutomation('info', correlationId, {
-        action: 'disqualification_complete',
+        action: 'disqualification_cloudtalk_complete',
         contact_id: contactId,
         final_tags: finalTags,
         removed_campaign_tags: existingTags.filter(tag => CAMPAIGN_TAGS_TO_REMOVE.includes(tag))
       });
+
+      // ===== GHL Opportunity Update (Non-Blocking) =====
+      let ghlOpportunityResult = null;
+
+      try {
+        // Extract phone number from contactData
+        const contactPhone = contactData.contact_numbers?.[0] ||
+                           contactData.phone ||
+                           contactData.ContactNumber?.[0]?.public_number ||
+                           null;
+
+        if (contactPhone && disqualificationTags.length > 0) {
+          // Use FIRST tag from the list (not priority order)
+          const selectedTag = disqualificationTags[0];
+
+          logAutomation('info', correlationId, {
+            action: 'ghl_opportunity_update_start',
+            contact_id: contactId,
+            contact_phone: contactPhone.replace(/\d(?=\d{4})/g, '*'),
+            selected_disqualification_tag: selectedTag,
+            all_disqualification_tags: disqualificationTags
+          });
+
+          // Call GHL service (non-blocking - don't await)
+          handleDisqualificationOpportunities(contactPhone, selectedTag, correlationId)
+            .then(result => {
+              if (result.success) {
+                logAutomation('info', correlationId, {
+                  action: 'ghl_opportunity_update_complete',
+                  contact_id: contactId,
+                  ghl_result: result
+                });
+              } else {
+                logAutomation('warn', correlationId, {
+                  action: 'ghl_opportunity_update_failed',
+                  contact_id: contactId,
+                  error: result.error,
+                  note: 'CloudTalk disqualification completed despite GHL failure'
+                });
+              }
+            })
+            .catch(error => {
+              logAutomation('error', correlationId, {
+                action: 'ghl_opportunity_update_error',
+                contact_id: contactId,
+                error: error.message,
+                note: 'CloudTalk disqualification completed despite GHL error'
+              });
+            });
+
+          ghlOpportunityResult = { status: 'processing_async' };
+        } else {
+          logAutomation('warn', correlationId, {
+            action: 'ghl_opportunity_update_skipped',
+            contact_id: contactId,
+            reason: !contactPhone ? 'No phone number found' : 'No disqualification tags',
+            has_phone: !!contactPhone,
+            has_tags: disqualificationTags.length > 0
+          });
+        }
+
+      } catch (ghlError) {
+        // Log error but DON'T throw - CloudTalk process must continue
+        logAutomation('error', correlationId, {
+          action: 'ghl_opportunity_integration_error',
+          contact_id: contactId,
+          error: ghlError.message,
+          stack: ghlError.stack,
+          note: 'CloudTalk disqualification completed despite GHL integration error'
+        });
+      }
+      // ===== End GHL Opportunity Update =====
 
       return {
         success: true,
         disqualification: true,
         removedTags: existingTags.filter(tag => CAMPAIGN_TAGS_TO_REMOVE.includes(tag)),
         addedTags: disqualificationTags,
-        finalTags: finalTags
+        finalTags: finalTags,
+        ghlOpportunityUpdate: ghlOpportunityResult
       };
     } else {
       logAutomation('error', correlationId, {

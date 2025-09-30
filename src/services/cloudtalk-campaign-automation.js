@@ -792,12 +792,28 @@ async function processCallEndedWebhook(webhookPayload, correlationId) {
     await updateContactCustomField(contact.id, ATTEMPTS_FIELD_KEY, newValue, correlationId, contact);
 
     // 5. Check for disqualification tags in webhook payload
-    // Tags can be in different fields depending on webhook structure
-    const webhookTags = webhookPayload.tags || webhookPayload.call_tags || webhookPayload.ContactsTag || [];
+    // CloudTalk sends tags as a CSV string in "tag" field (singular)
+    // Example: "Straniero" or "Straniero,Cerca lavoro"
+    let webhookTags = [];
+
+    if (webhookPayload.tag) {
+      // Split CSV string and trim whitespace
+      webhookTags = webhookPayload.tag
+        .split(',')
+        .map(tag => tag.trim())
+        .filter(tag => tag.length > 0);
+    } else if (webhookPayload.tags) {
+      // Fallback: if tags is an array
+      webhookTags = Array.isArray(webhookPayload.tags) ? webhookPayload.tags : [];
+    } else if (webhookPayload.call_tags) {
+      // Fallback: if call_tags is an array
+      webhookTags = Array.isArray(webhookPayload.call_tags) ? webhookPayload.call_tags : [];
+    }
 
     logAutomation('info', correlationId, {
       action: 'checking_disqualification',
-      webhook_tags: webhookTags,
+      webhook_tag_field: webhookPayload.tag || null,
+      parsed_tags: webhookTags,
       webhook_fields: Object.keys(webhookPayload)
     });
 

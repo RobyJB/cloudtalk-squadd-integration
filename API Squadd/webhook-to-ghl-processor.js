@@ -308,10 +308,12 @@ async function processRecordingReady(contact, payload) {
 
     } else {
       console.log(`⚠️ Transcription failed: ${transcription.error}`);
-      noteText = `⚠️ Trascrizione automatica fallita: ${transcription.error}\n\n📞 Call ID: ${payload.call_id}\n🔗 Recording URL: ${payload.recording_url}\n🎧 Clicca sul link sopra per ascoltare la registrazione`;
+      const callId = payload.call_id || payload._correlationId || 'N/A';
+      noteText = `⚠️ Trascrizione automatica fallita: ${transcription.error}\n\n📞 Call ID: ${callId}\n🔗 Recording URL: ${payload.recording_url}\n🎧 Clicca sul link sopra per ascoltare la registrazione`;
     }
   } else {
-    noteText = `✅ Registrazione disponibile per la revisione\n\n📞 Call ID: ${payload.call_id}\n🔗 Recording URL: ${payload.recording_url}\n🎧 Clicca sul link sopra per ascoltare la registrazione`;
+    const callId = payload.call_id || payload._correlationId || 'N/A';
+    noteText = `✅ Registrazione disponibile per la revisione\n\n📞 Call ID: ${callId}\n🔗 Recording URL: ${payload.recording_url}\n🎧 Clicca sul link sopra per ascoltare la registrazione`;
   }
 
   const result = await addNoteToGHLContact(contact.id, noteText);
@@ -335,10 +337,11 @@ async function processTranscriptionReady(contact, payload) {
   // Extract transcription text (might be in different fields)
   const transcriptionText = payload.transcription || payload.transcript || payload.text || 'Trascrizione non disponibile';
   const transcriptionUrl = payload.transcription_url || payload.url;
+  const callId = payload.call_id || payload._correlationId || 'N/A';
 
   const noteText = `📄 TRASCRIZIONE CLOUDTALK DISPONIBILE
 
-📞 Call ID: ${payload.call_id}
+📞 Call ID: ${callId}
 📱 Numero: ${payload.external_number}
 📅 Timestamp: ${new Date().toLocaleString('it-IT')}
 
@@ -439,20 +442,8 @@ async function processContactUpdate(contact, payload) {
 async function processCallStarted(contact, payload) {
   console.log('📞 Processing call started...');
 
-  // Step 1: Log chiamata iniziata
-  const noteText = `📞 CHIAMATA INIZIATA - CLOUDTALK
-
-📞 Call ID: ${payload.call_id}
-📱 Numero chiamante: ${payload.external_number}
-👤 Agente: ${payload.agent_name || payload.agent_id || 'N/A'}
-🕐 Ora inizio: ${new Date().toLocaleString('it-IT')}
-📋 Tipo: ${payload.call_type || 'Non specificato'}
-
-⏳ Chiamata in corso...`;
-
-  const noteResult = await addNoteToGHLContact(contact.id, noteText);
-
-  // Step 2: Genera e invia Smart CueCard se abbiamo call_uuid
+  // NOTA GHL DISABILITATA - utente non la vuole
+  // Step 1: Genera e invia Smart CueCard se abbiamo call_uuid
   let cueCardResult = null;
   if (payload.call_uuid || payload.Call_uuid) {
     try {
@@ -478,8 +469,7 @@ async function processCallStarted(contact, payload) {
   }
 
   return {
-    action: 'call_start_logged_with_cuecard',
-    noteId: noteResult.id,
+    action: 'call_start_cuecard_only',
     callId: payload.call_id,
     cueCardSent: cueCardResult?.success || false,
     cueCardError: cueCardResult?.error || null

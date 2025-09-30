@@ -30,12 +30,33 @@ const THRESHOLDS = {
 // Nomi tag campagne (configurabili via ENV)
 const CAMPAIGN_TAGS = {
   NUOVI_LEAD: process.env.CLOUDTALK_TAG_NUOVI_LEAD || 'Nuovi Lead',
-  FOLLOW_UP: process.env.CLOUDTALK_TAG_FOLLOW_UP || 'Follow Up', 
+  LEAD_RECENTI: process.env.CLOUDTALK_TAG_LEAD_RECENTI || 'lead_recenti',  // New tag for 3-9 attempts
+  FOLLOW_UP: process.env.CLOUDTALK_TAG_FOLLOW_UP || 'Follow Up',
   MANCATA_RISPOSTA: process.env.CLOUDTALK_TAG_MANCATA_RISPOSTA || 'Mancata Risposta'
 };
 
 // Campo custom per tentativi
 const ATTEMPTS_FIELD_KEY = process.env.TOTAL_ATTEMPTS_FIELD_KEY || '# di tentativi di chiamata';
+
+// Disqualification tags (exact match, case-sensitive)
+const DISQUALIFICATION_TAGS = [
+  'Straniero',
+  'Cerca lavoro',
+  'Non ha capito perché ha cliccato',
+  'Bambino',
+  'Fuori target',
+  'Fuori budget',
+  'Dati errati'
+];
+
+// Campaign tags to remove when disqualified (exact match, case-sensitive)
+const CAMPAIGN_TAGS_TO_REMOVE = [
+  'nuovi_lead',     // lowercase with underscore
+  'Nuovi Lead',     // standard format
+  'mancata_risposta',  // lowercase with underscore
+  'followup',       // lowercase no space
+  'lead_recenti'    // lowercase with underscore
+];
 
 // Cache campagne (TTL 5 minuti)
 const campaignCache = new Map();
@@ -426,19 +447,19 @@ async function manageCampaignTags(contactId, currentAttempts, contactData, corre
     let addedTags = [];
     
     if (currentAttempts >= 1 && currentAttempts <= 2) {
-      // 1-2 tentativi: Tag "Nuovi Lead"
-      targetTags = [CAMPAIGN_TAGS.NUOVI_LEAD];
-      addedTags = [CAMPAIGN_TAGS.NUOVI_LEAD];
+      // 1-2 tentativi: Tag "nuovi_lead" (exactly as specified)
+      targetTags = ['nuovi_lead'];
+      addedTags = ['nuovi_lead'];
     } else if (currentAttempts >= 3 && currentAttempts <= 9) {
-      // 3-9 tentativi: Tag "Follow Up" (rimuovi "Nuovi Lead")
-      targetTags = [CAMPAIGN_TAGS.FOLLOW_UP];
-      removedTags = [CAMPAIGN_TAGS.NUOVI_LEAD];
-      addedTags = [CAMPAIGN_TAGS.FOLLOW_UP];
+      // 3-9 tentativi: Tag "lead_recenti" (rimuovi "nuovi_lead")
+      targetTags = ['lead_recenti'];
+      removedTags = ['nuovi_lead'];
+      addedTags = ['lead_recenti'];
     } else if (currentAttempts >= 10) {
-      // 10+ tentativi: Tag "Mancata Risposta" (rimuovi "Follow Up")
-      targetTags = [CAMPAIGN_TAGS.MANCATA_RISPOSTA];
-      removedTags = [CAMPAIGN_TAGS.FOLLOW_UP];
-      addedTags = [CAMPAIGN_TAGS.MANCATA_RISPOSTA];
+      // 10+ tentativi: Tag "mancata_risposta" (rimuovi "lead_recenti")
+      targetTags = ['mancata_risposta'];
+      removedTags = ['lead_recenti'];
+      addedTags = ['mancata_risposta'];
     }
     
     if (targetTags.length > 0) {
@@ -598,8 +619,114 @@ async function updateContactTags(contactId, tags, contactData, correlationId) {
 }
 
 /**
+ * Check if webhook contains any disqualification tags
+ *
+ * @param {Array} webhookTags - Array of tags from webhook payload
+ * @returns {Object} { isDisqualified: boolean, matchedTags: array }
+ */
+function checkDisqualification(webhookTags) {
+  if (!webhookTags || !Array.isArray(webhookTags) || webhookTags.length === 0) {
+    return { isDisqualified: false, matchedTags: [] };
+  }
+
+  // Find exact matches (case-sensitive)
+  const matchedTags = webhookTags.filter(tag =>
+    DISQUALIFICATION_TAGS.includes(tag)
+  );
+
+  return {
+    isDisqualified: matchedTags.length > 0,
+    matchedTags: matchedTags
+  };
+}
+
+/**
+ * Handle disqualification by removing campaign tags and adding disqualification tags
+ *
+ * @param {string} contactId - Contact ID
+ * @param {Object} contactData - Full contact data
+ * @param {Array} disqualificationTags - Disqualification tags to add
+ * @param {Array} existingTags - Current tags from webhook or contact
+ * @param {string} correlationId - Correlation ID for logging
+ * @returns {Object} Result of disqualification handling
+ */
+async function handleDisqualification(contactId, contactData, disqualificationTags, existingTags, correlationId) {
+  try {
+    logAutomation('info', correlationId, {
+      action: 'disqualification_start',
+      contact_id: contactId,
+      contact_name: contactData?.name,
+      disqualification_tags: disqualificationTags,
+      existing_tags: existingTags
+    });
+
+    // Filter out campaign tags, keep other tags
+    const nonCampaignTags = existingTags.filter(tag =>
+      !CAMPAIGN_TAGS_TO_REMOVE.includes(tag)
+    );
+
+    // Add disqualification tags (avoid duplicates)
+    const finalTags = [...new Set([...nonCampaignTags, ...disqualificationTags])];
+
+    logAutomation('info', correlationId, {
+      action: 'disqualification_tag_calculation',
+      contact_id: contactId,
+      removed_tags: existingTags.filter(tag => CAMPAIGN_TAGS_TO_REMOVE.includes(tag)),
+      added_tags: disqualificationTags,
+      final_tags: finalTags
+    });
+
+    // Update contact tags
+    const updateResult = await updateContactTags(contactId, finalTags, contactData, correlationId);
+
+    if (updateResult.success) {
+      logAutomation('info', correlationId, {
+        action: 'disqualification_complete',
+        contact_id: contactId,
+        final_tags: finalTags,
+        removed_campaign_tags: existingTags.filter(tag => CAMPAIGN_TAGS_TO_REMOVE.includes(tag))
+      });
+
+      return {
+        success: true,
+        disqualification: true,
+        removedTags: existingTags.filter(tag => CAMPAIGN_TAGS_TO_REMOVE.includes(tag)),
+        addedTags: disqualificationTags,
+        finalTags: finalTags
+      };
+    } else {
+      logAutomation('error', correlationId, {
+        action: 'disqualification_update_failed',
+        contact_id: contactId,
+        error: updateResult.error
+      });
+
+      return {
+        success: false,
+        disqualification: true,
+        error: updateResult.error
+      };
+    }
+
+  } catch (error) {
+    logAutomation('error', correlationId, {
+      action: 'disqualification_error',
+      contact_id: contactId,
+      error: error.message,
+      stack: error.stack
+    });
+
+    return {
+      success: false,
+      disqualification: true,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Processo principale: gestisce webhook call-ended
- * 
+ *
  * @param {Object} webhookPayload - Payload del webhook
  * @param {string} correlationId - ID per tracciamento (es. call_uuid)
  * @returns {Object} Risultato del processing
@@ -663,8 +790,73 @@ async function processCallEndedWebhook(webhookPayload, correlationId) {
     
     // 4. Aggiorna campo custom (passa i dati del contatto già ottenuti)
     await updateContactCustomField(contact.id, ATTEMPTS_FIELD_KEY, newValue, correlationId, contact);
-    
-    // 5. Gestisce i tag delle campagne basandosi sui tentativi
+
+    // 5. Check for disqualification tags in webhook payload
+    // Tags can be in different fields depending on webhook structure
+    const webhookTags = webhookPayload.tags || webhookPayload.call_tags || webhookPayload.ContactsTag || [];
+
+    logAutomation('info', correlationId, {
+      action: 'checking_disqualification',
+      webhook_tags: webhookTags,
+      webhook_fields: Object.keys(webhookPayload)
+    });
+
+    const disqualificationCheck = checkDisqualification(webhookTags);
+
+    if (disqualificationCheck.isDisqualified) {
+      // Handle disqualification - remove campaign tags and add disqualification tags
+      logAutomation('info', correlationId, {
+        action: 'disqualification_detected',
+        contact_id: contact.id,
+        matched_disqualification_tags: disqualificationCheck.matchedTags
+      });
+
+      // Get existing tags from contact or webhook
+      const existingTags = webhookTags || [];
+
+      const disqualificationResult = await handleDisqualification(
+        contact.id,
+        contact,
+        disqualificationCheck.matchedTags,
+        existingTags,
+        correlationId
+      );
+
+      // Return early with disqualification result
+      const duration = Date.now() - startTime;
+
+      logAutomation('info', correlationId, {
+        action: 'process_complete_with_disqualification',
+        outcome: 'disqualified',
+        contact_id: contact.id,
+        phone_masked: phoneNumber.replace(/\d(?=\d{4})/g, '*'),
+        attempts_prev: currentValue,
+        attempts_new: newValue,
+        disqualification_tags: disqualificationCheck.matchedTags,
+        removed_campaign_tags: disqualificationResult.removedTags,
+        duration_ms: duration
+      });
+
+      return {
+        success: true,
+        disqualification: true,
+        contact: {
+          id: contact.id,
+          name: contact.name,
+          phone: phoneNumber
+        },
+        attempts: {
+          previous: currentValue,
+          new: newValue
+        },
+        disqualificationTags: disqualificationCheck.matchedTags,
+        removedCampaignTags: disqualificationResult.removedTags,
+        finalTags: disqualificationResult.finalTags,
+        duration: duration
+      };
+    }
+
+    // 6. If not disqualified, manage campaign tags based on attempts
     const tagResult = await manageCampaignTags(contact.id, newValue, contact, correlationId);
     let tagsUpdated = false;
     let tagChanges = null;
@@ -688,7 +880,7 @@ async function processCallEndedWebhook(webhookPayload, correlationId) {
       });
     }
     
-    // 6. Risultato finale
+    // 7. Risultato finale
     const duration = Date.now() - startTime;
     
     logAutomation('info', correlationId, {
@@ -740,8 +932,12 @@ export {
   manageCampaignTags,
   updateContactTags,
   getCampaignIdByName,
+  checkDisqualification,
+  handleDisqualification,
   logAutomation,
   THRESHOLDS,
   CAMPAIGN_TAGS,
-  ATTEMPTS_FIELD_KEY
+  ATTEMPTS_FIELD_KEY,
+  DISQUALIFICATION_TAGS,
+  CAMPAIGN_TAGS_TO_REMOVE
 };

@@ -791,14 +791,12 @@ async function processCallEndedWebhook(webhookPayload, correlationId) {
     // 4. Aggiorna campo custom (passa i dati del contatto già ottenuti)
     await updateContactCustomField(contact.id, ATTEMPTS_FIELD_KEY, newValue, correlationId, contact);
 
-    // 5. Check for disqualification tags in BOTH webhook AND contact record
-    // Webhook can have call-specific tags, contact has existing tags
+    // 5. Check for disqualification tags ONLY from webhook payload
+    // CloudTalk sends tags as CSV string: "Straniero" or "Straniero,Cerca lavoro"
     let webhookTags = [];
-    let contactTags = [];
 
-    // Extract webhook tags (call-specific tags)
     if (webhookPayload.tag) {
-      // CloudTalk sends tags as CSV string: "Straniero" or "Straniero,Cerca lavoro"
+      // Split CSV string and trim whitespace
       webhookTags = webhookPayload.tag
         .split(',')
         .map(tag => tag.trim())
@@ -809,26 +807,14 @@ async function processCallEndedWebhook(webhookPayload, correlationId) {
       webhookTags = Array.isArray(webhookPayload.call_tags) ? webhookPayload.call_tags : [];
     }
 
-    // Extract contact tags (existing tags on CloudTalk contact record)
-    if (contact.tags && Array.isArray(contact.tags)) {
-      contactTags = contact.tags.map(tag => typeof tag === 'string' ? tag : tag.name).filter(Boolean);
-    } else if (contact.ContactsTag && Array.isArray(contact.ContactsTag)) {
-      contactTags = contact.ContactsTag.map(tag => typeof tag === 'string' ? tag : tag.name).filter(Boolean);
-    }
-
-    // Merge all tags for comprehensive disqualification check
-    const allTags = [...new Set([...webhookTags, ...contactTags])];
-
     logAutomation('info', correlationId, {
       action: 'checking_disqualification',
       webhook_tag_field: webhookPayload.tag || null,
       webhook_tags: webhookTags,
-      contact_tags: contactTags,
-      all_tags: allTags,
       contact_id: contact.id
     });
 
-    const disqualificationCheck = checkDisqualification(allTags);
+    const disqualificationCheck = checkDisqualification(webhookTags);
 
     if (disqualificationCheck.isDisqualified) {
       // Handle disqualification - remove campaign tags and add disqualification tags

@@ -342,13 +342,13 @@ async function handleDisqualificationOpportunities(contactPhone, disqualificatio
 
   try {
     // Step 1: Find GHL contact by phone
-    const contactSearchResult = await searchGHLContactByPhone(contactPhone, correlationId);
+    const contact = await searchGHLContactByPhone(contactPhone, correlationId);
 
-    if (!contactSearchResult.success || !contactSearchResult.contact) {
+    // searchGHLContactByPhone returns the contact directly or null
+    if (!contact) {
       logOpportunity('info', correlationId, {
         action: 'contact_not_found',
-        phone: contactPhone,
-        search_result: contactSearchResult
+        phone: contactPhone
       });
       return {
         success: true,
@@ -358,12 +358,12 @@ async function handleDisqualificationOpportunities(contactPhone, disqualificatio
       };
     }
 
-    const ghlContactId = contactSearchResult.contact.id;
+    const ghlContactId = contact.id;
 
     logOpportunity('info', correlationId, {
       action: 'contact_found',
       contact_id: ghlContactId,
-      contact_name: contactSearchResult.contact.name
+      contact_name: `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || contact.name
     });
 
     // Step 2: Search for opportunities
@@ -597,13 +597,13 @@ async function handleCustomerOpportunities(contactPhone, customerTag, correlatio
 
   try {
     // Step 1: Find GHL contact by phone
-    const contactSearchResult = await searchGHLContactByPhone(contactPhone, correlationId);
+    const contact = await searchGHLContactByPhone(contactPhone, correlationId);
 
-    if (!contactSearchResult.success || !contactSearchResult.contact) {
+    // searchGHLContactByPhone returns the contact directly or null
+    if (!contact) {
       logOpportunity('info', correlationId, {
         action: 'contact_not_found',
-        phone: contactPhone,
-        search_result: contactSearchResult
+        phone: contactPhone
       });
       return {
         success: true,
@@ -613,12 +613,12 @@ async function handleCustomerOpportunities(contactPhone, customerTag, correlatio
       };
     }
 
-    const ghlContactId = contactSearchResult.contact.id;
+    const ghlContactId = contact.id;
 
     logOpportunity('info', correlationId, {
       action: 'contact_found',
       contact_id: ghlContactId,
-      contact_name: contactSearchResult.contact.name
+      contact_name: `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || contact.name
     });
 
     // Step 2: Search for opportunities

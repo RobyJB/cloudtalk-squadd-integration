@@ -486,7 +486,7 @@ async function handleDisqualificationOpportunities(contactPhone, disqualificatio
  * Update an opportunity to won status
  *
  * @param {string} opportunityId - Opportunity ID to update
- * @param {string} winReason - Reason for marking as won (optional)
+ * @param {string} winReason - Deprecated parameter, kept for backward compatibility but not used
  * @param {string} correlationId - Correlation ID for request tracking
  * @returns {Promise<Object>} Update result
  */
@@ -509,12 +509,11 @@ async function updateOpportunityToWon(opportunityId, winReason, correlationId) {
   logOpportunity('info', correlationId, {
     action: 'update_opportunity_to_won_start',
     opportunity_id: opportunityId,
-    win_reason: winReason,
     endpoint: statusUrl
   });
 
   try {
-    // Step 1: Update status to won
+    // Update status to won
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
@@ -552,95 +551,10 @@ async function updateOpportunityToWon(opportunityId, winReason, correlationId) {
       response: responseData
     });
 
-    // Step 2: Try to update custom field win_reason (if provided)
-    if (winReason) {
-      try {
-        const updateUrl = `https://services.leadconnectorhq.com/opportunities/${opportunityId}`;
-        const customFieldBody = {
-          customFields: [
-            {
-              key: 'win_reason',
-              field_value: winReason
-            }
-          ]
-        };
-
-        logOpportunity('info', correlationId, {
-          action: 'update_win_custom_field_start',
-          opportunity_id: opportunityId,
-          custom_field: 'win_reason',
-          value: winReason
-        });
-
-        const controller2 = new AbortController();
-        const timeoutId2 = setTimeout(() => controller2.abort(), API_TIMEOUT);
-
-        const customFieldResponse = await fetch(updateUrl, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${GHL_API_KEY}`,
-            'Version': '2021-07-28',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(customFieldBody),
-          signal: controller2.signal
-        });
-
-        clearTimeout(timeoutId2);
-
-        const customFieldData = await customFieldResponse.json();
-
-        if (customFieldResponse.ok) {
-          logOpportunity('info', correlationId, {
-            action: 'update_win_custom_field_success',
-            opportunity_id: opportunityId
-          });
-          return {
-            success: true,
-            statusUpdated: true,
-            customFieldUpdated: true,
-            response: responseData
-          };
-        } else {
-          // Custom field update failed, but status was updated
-          logOpportunity('warn', correlationId, {
-            action: 'update_win_custom_field_failed',
-            opportunity_id: opportunityId,
-            status_code: customFieldResponse.status,
-            error: customFieldData,
-            note: 'Status updated successfully despite custom field failure'
-          });
-          return {
-            success: true,
-            statusUpdated: true,
-            customFieldUpdated: false,
-            customFieldError: customFieldData,
-            response: responseData
-          };
-        }
-      } catch (customFieldError) {
-        // Custom field update error, but status was updated
-        logOpportunity('warn', correlationId, {
-          action: 'update_win_custom_field_exception',
-          opportunity_id: opportunityId,
-          error: customFieldError.message,
-          note: 'Status updated successfully despite custom field exception'
-        });
-        return {
-          success: true,
-          statusUpdated: true,
-          customFieldUpdated: false,
-          customFieldError: customFieldError.message,
-          response: responseData
-        };
-      }
-    }
-
-    // No custom field requested, just status update
+    // Return success with simple structure
     return {
       success: true,
       statusUpdated: true,
-      customFieldUpdated: false,
       response: responseData
     };
 

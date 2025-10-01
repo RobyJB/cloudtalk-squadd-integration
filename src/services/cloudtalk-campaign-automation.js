@@ -765,15 +765,19 @@ async function handleDisqualification(contactId, contactData, disqualificationTa
                            null;
 
         if (contactPhone && disqualificationTags.length > 0) {
-          // Use FIRST tag from the list (not priority order)
-          const selectedTag = disqualificationTags[0];
+          // Use LAST tag from the list (most recently added by user)
+          // CloudTalk appends new tags to the end of the CSV string
+          // Example: "Fuori budget,Cerca lavoro" -> ["Fuori budget", "Cerca lavoro"]
+          // User just added "Cerca lavoro", so we want the LAST one
+          const selectedTag = disqualificationTags[disqualificationTags.length - 1];
 
           logAutomation('info', correlationId, {
             action: 'ghl_opportunity_update_start',
             contact_id: contactId,
             contact_phone: contactPhone.replace(/\d(?=\d{4})/g, '*'),
             selected_disqualification_tag: selectedTag,
-            all_disqualification_tags: disqualificationTags
+            all_disqualification_tags: disqualificationTags,
+            selection_method: 'last_tag_most_recent'
           });
 
           // Call GHL service (non-blocking - don't await)

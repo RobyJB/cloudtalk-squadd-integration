@@ -63,6 +63,19 @@ const CAMPAIGN_TAGS_TO_REMOVE = [
   'Follow Up'             // legacy format with capitals
 ];
 
+// Appointment fixed tags (exact match, case-sensitive)
+const APPOINTMENT_FIXED_TAGS = [
+  'App. fissato'
+];
+
+// Customer tags with mapping (exact match, case-sensitive)
+const CUSTOMER_TAG_MAPPING = {
+  'Già cliente': 'Cliente'
+};
+
+// Get all customer tag keys for checking
+const CUSTOMER_TAGS = Object.keys(CUSTOMER_TAG_MAPPING);
+
 // Cache campagne (TTL 5 minuti)
 const campaignCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minuti
@@ -646,6 +659,55 @@ function checkDisqualification(webhookTags) {
 }
 
 /**
+ * Check if webhook contains appointment fixed tags
+ *
+ * @param {Array} webhookTags - Array of tags from webhook payload
+ * @returns {Object} { isAppointmentFixed: boolean, matchedTag: string|null }
+ */
+function checkAppointmentFixed(webhookTags) {
+  if (!webhookTags || !Array.isArray(webhookTags) || webhookTags.length === 0) {
+    return { isAppointmentFixed: false, matchedTag: null };
+  }
+
+  // Find exact match (case-sensitive)
+  const matchedTag = webhookTags.find(tag =>
+    APPOINTMENT_FIXED_TAGS.includes(tag)
+  );
+
+  return {
+    isAppointmentFixed: !!matchedTag,
+    matchedTag: matchedTag || null
+  };
+}
+
+/**
+ * Check if webhook contains customer tags and get mapping
+ *
+ * @param {Array} webhookTags - Array of tags from webhook payload
+ * @returns {Object} { isCustomer: boolean, matchedTag: string|null, mappedTag: string|null }
+ */
+function checkCustomerTag(webhookTags) {
+  if (!webhookTags || !Array.isArray(webhookTags) || webhookTags.length === 0) {
+    return { isCustomer: false, matchedTag: null, mappedTag: null };
+  }
+
+  // Find first match from mapping keys
+  const matchedTag = webhookTags.find(tag =>
+    CUSTOMER_TAGS.includes(tag)
+  );
+
+  if (matchedTag) {
+    return {
+      isCustomer: true,
+      matchedTag: matchedTag,
+      mappedTag: CUSTOMER_TAG_MAPPING[matchedTag]
+    };
+  }
+
+  return { isCustomer: false, matchedTag: null, mappedTag: null };
+}
+
+/**
  * Handle disqualification by removing campaign tags and adding disqualification tags
  *
  * @param {string} contactId - Contact ID
@@ -803,6 +865,242 @@ async function handleDisqualification(contactId, contactData, disqualificationTa
 }
 
 /**
+ * Gestione tag "App. fissato" (Appointment Fixed)
+ * Remove ALL other tags, keep ONLY "App. fissato", NO GHL update
+ *
+ * @param {string} contactId - CloudTalk contact ID
+ * @param {Object} contactData - Full contact data from CloudTalk
+ * @param {string} matchedTag - The appointment tag that was matched
+ * @param {string} correlationId - Correlation ID for logging
+ * @returns {Promise<Object>} Result of the operation
+ */
+async function handleAppointmentFixed(contactId, contactData, matchedTag, correlationId) {
+  logAutomation('info', correlationId, {
+    action: 'appointment_fixed_start',
+    contact_id: contactId,
+    matched_tag: matchedTag
+  });
+
+  try {
+    // Get existing tags
+    const existingTags = contactData.tags || [];
+
+    logAutomation('info', correlationId, {
+      action: 'appointment_fixed_tags_before',
+      contact_id: contactId,
+      existing_tags: existingTags,
+      matched_tag: matchedTag
+    });
+
+    // Final tags: ONLY the appointment tag
+    const finalTags = [matchedTag];
+
+    // Update contact tags in CloudTalk
+    const updateResult = await updateContactTags(contactId, finalTags, correlationId);
+
+    if (updateResult.success) {
+      logAutomation('info', correlationId, {
+        action: 'appointment_fixed_complete',
+        contact_id: contactId,
+        removed_tags: existingTags.filter(tag => tag !== matchedTag),
+        final_tags: finalTags,
+        note: 'NO GHL update performed for appointment fixed'
+      });
+
+      return {
+        success: true,
+        appointmentFixed: true,
+        removedTags: existingTags.filter(tag => tag !== matchedTag),
+        addedTags: [],
+        finalTags: finalTags,
+        ghlUpdate: null // NO GHL update for appointment fixed
+      };
+    } else {
+      logAutomation('error', correlationId, {
+        action: 'appointment_fixed_update_failed',
+        contact_id: contactId,
+        error: updateResult.error
+      });
+
+      return {
+        success: false,
+        appointmentFixed: true,
+        error: updateResult.error
+      };
+    }
+
+  } catch (error) {
+    logAutomation('error', correlationId, {
+      action: 'appointment_fixed_error',
+      contact_id: contactId,
+      error: error.message,
+      stack: error.stack
+    });
+
+    return {
+      success: false,
+      appointmentFixed: true,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Gestione tag "Già cliente" (Already Customer)
+ * Map to "Cliente" tag in CloudTalk, remove campaign tags, update GHL to "won"
+ *
+ * @param {string} contactId - CloudTalk contact ID
+ * @param {Object} contactData - Full contact data from CloudTalk
+ * @param {string} matchedTag - The customer tag that was matched (e.g., "Già cliente")
+ * @param {string} mappedTag - The tag to set in CloudTalk (e.g., "Cliente")
+ * @param {string} correlationId - Correlation ID for logging
+ * @returns {Promise<Object>} Result of the operation
+ */
+async function handleCustomerTag(contactId, contactData, matchedTag, mappedTag, correlationId) {
+  logAutomation('info', correlationId, {
+    action: 'customer_tag_start',
+    contact_id: contactId,
+    matched_tag: matchedTag,
+    mapped_tag: mappedTag
+  });
+
+  try {
+    // Get existing tags
+    const existingTags = contactData.tags || [];
+
+    logAutomation('info', correlationId, {
+      action: 'customer_tag_tags_before',
+      contact_id: contactId,
+      existing_tags: existingTags,
+      matched_tag: matchedTag,
+      mapped_tag: mappedTag
+    });
+
+    // Remove campaign tags and matched tag, add mapped tag
+    const tagsToRemove = [...CAMPAIGN_TAGS_TO_REMOVE, matchedTag];
+    const otherTags = existingTags.filter(tag => !tagsToRemove.includes(tag));
+    const finalTags = [...new Set([...otherTags, mappedTag])]; // Deduplicate
+
+    // Update contact tags in CloudTalk
+    const updateResult = await updateContactTags(contactId, finalTags, correlationId);
+
+    if (updateResult.success) {
+      logAutomation('info', correlationId, {
+        action: 'customer_tag_cloudtalk_complete',
+        contact_id: contactId,
+        removed_tags: existingTags.filter(tag => !finalTags.includes(tag)),
+        added_tags: [mappedTag],
+        final_tags: finalTags
+      });
+
+      // ===== GHL Opportunity Update to "won" (Non-Blocking) =====
+      let ghlOpportunityResult = null;
+
+      try {
+        // Extract phone number from contactData
+        const contactPhone = contactData.contact_numbers?.[0] ||
+                           contactData.phone ||
+                           contactData.ContactNumber?.[0]?.public_number ||
+                           null;
+
+        if (contactPhone) {
+          logAutomation('info', correlationId, {
+            action: 'ghl_customer_opportunity_update_start',
+            contact_id: contactId,
+            contact_phone: contactPhone.replace(/\d(?=\d{4})/g, '*'),
+            mapped_tag: mappedTag
+          });
+
+          // Call GHL service (non-blocking - don't await)
+          // Import handleCustomerOpportunities from ghl-opportunity-service.js
+          const { handleCustomerOpportunities } = await import('./ghl-opportunity-service.js');
+
+          handleCustomerOpportunities(contactPhone, mappedTag, correlationId)
+            .then(result => {
+              if (result.success) {
+                logAutomation('info', correlationId, {
+                  action: 'ghl_customer_opportunity_update_complete',
+                  contact_id: contactId,
+                  ghl_result: result
+                });
+              } else {
+                logAutomation('warn', correlationId, {
+                  action: 'ghl_customer_opportunity_update_failed',
+                  contact_id: contactId,
+                  error: result.error,
+                  note: 'CloudTalk customer tag update completed despite GHL failure'
+                });
+              }
+            })
+            .catch(error => {
+              logAutomation('error', correlationId, {
+                action: 'ghl_customer_opportunity_update_error',
+                contact_id: contactId,
+                error: error.message,
+                note: 'CloudTalk customer tag update completed despite GHL error'
+              });
+            });
+
+          ghlOpportunityResult = { status: 'processing_async' };
+        } else {
+          logAutomation('warn', correlationId, {
+            action: 'ghl_customer_opportunity_update_skipped',
+            contact_id: contactId,
+            reason: 'No phone number available'
+          });
+        }
+      } catch (ghlError) {
+        // Log but don't throw - CloudTalk must continue
+        logAutomation('error', correlationId, {
+          action: 'ghl_customer_opportunity_integration_error',
+          contact_id: contactId,
+          error: ghlError.message,
+          stack: ghlError.stack,
+          note: 'CloudTalk customer tag update completed despite GHL integration error'
+        });
+      }
+      // ===== End GHL Opportunity Update =====
+
+      return {
+        success: true,
+        customerTag: true,
+        removedTags: existingTags.filter(tag => !finalTags.includes(tag)),
+        addedTags: [mappedTag],
+        finalTags: finalTags,
+        tagMapping: { from: matchedTag, to: mappedTag },
+        ghlOpportunityUpdate: ghlOpportunityResult
+      };
+    } else {
+      logAutomation('error', correlationId, {
+        action: 'customer_tag_update_failed',
+        contact_id: contactId,
+        error: updateResult.error
+      });
+
+      return {
+        success: false,
+        customerTag: true,
+        error: updateResult.error
+      };
+    }
+
+  } catch (error) {
+    logAutomation('error', correlationId, {
+      action: 'customer_tag_error',
+      contact_id: contactId,
+      error: error.message,
+      stack: error.stack
+    });
+
+    return {
+      success: false,
+      customerTag: true,
+      error: error.message
+    };
+  }
+}
+
+/**
  * Processo principale: gestisce webhook call-ended
  *
  * @param {Object} webhookPayload - Payload del webhook
@@ -886,12 +1184,122 @@ async function processCallEndedWebhook(webhookPayload, correlationId) {
     }
 
     logAutomation('info', correlationId, {
-      action: 'checking_disqualification',
+      action: 'checking_tags_with_priority',
       webhook_tag_field: webhookPayload.tag || null,
       webhook_tags: webhookTags,
-      contact_id: contact.id
+      contact_id: contact.id,
+      priority_order: ['App. fissato', 'Già cliente', 'Disqualification', 'Campaign progression']
     });
 
+    // ===== PRIORITY 1: Check for "App. fissato" (Appointment Fixed) =====
+    const appointmentCheck = checkAppointmentFixed(webhookTags);
+
+    if (appointmentCheck.isAppointmentFixed) {
+      logAutomation('info', correlationId, {
+        action: 'appointment_fixed_detected',
+        contact_id: contact.id,
+        matched_tag: appointmentCheck.matchedTag,
+        priority: 1
+      });
+
+      const appointmentResult = await handleAppointmentFixed(
+        contact.id,
+        contact,
+        appointmentCheck.matchedTag,
+        correlationId
+      );
+
+      const duration = Date.now() - startTime;
+
+      logAutomation('info', correlationId, {
+        action: 'process_complete_with_appointment_fixed',
+        outcome: 'appointment_fixed',
+        contact_id: contact.id,
+        phone_masked: phoneNumber.replace(/\d(?=\d{4})/g, '*'),
+        attempts_prev: currentValue,
+        attempts_new: newValue,
+        matched_tag: appointmentCheck.matchedTag,
+        removed_tags: appointmentResult.removedTags,
+        duration_ms: duration
+      });
+
+      return {
+        success: true,
+        appointmentFixed: true,
+        contact: {
+          id: contact.id,
+          name: contact.name,
+          phone: phoneNumber
+        },
+        attempts: {
+          previous: currentValue,
+          new: newValue
+        },
+        appointmentTag: appointmentCheck.matchedTag,
+        removedTags: appointmentResult.removedTags,
+        finalTags: appointmentResult.finalTags,
+        duration: duration
+      };
+    }
+
+    // ===== PRIORITY 2: Check for "Già cliente" (Customer Tag) =====
+    const customerCheck = checkCustomerTag(webhookTags);
+
+    if (customerCheck.isCustomer) {
+      logAutomation('info', correlationId, {
+        action: 'customer_tag_detected',
+        contact_id: contact.id,
+        matched_tag: customerCheck.matchedTag,
+        mapped_tag: customerCheck.mappedTag,
+        priority: 2
+      });
+
+      const customerResult = await handleCustomerTag(
+        contact.id,
+        contact,
+        customerCheck.matchedTag,
+        customerCheck.mappedTag,
+        correlationId
+      );
+
+      const duration = Date.now() - startTime;
+
+      logAutomation('info', correlationId, {
+        action: 'process_complete_with_customer_tag',
+        outcome: 'customer_tag',
+        contact_id: contact.id,
+        phone_masked: phoneNumber.replace(/\d(?=\d{4})/g, '*'),
+        attempts_prev: currentValue,
+        attempts_new: newValue,
+        matched_tag: customerCheck.matchedTag,
+        mapped_tag: customerCheck.mappedTag,
+        removed_tags: customerResult.removedTags,
+        duration_ms: duration
+      });
+
+      return {
+        success: true,
+        customerTag: true,
+        contact: {
+          id: contact.id,
+          name: contact.name,
+          phone: phoneNumber
+        },
+        attempts: {
+          previous: currentValue,
+          new: newValue
+        },
+        customerTagMatched: customerCheck.matchedTag,
+        customerTagMapped: customerCheck.mappedTag,
+        removedTags: customerResult.removedTags,
+        addedTags: customerResult.addedTags,
+        finalTags: customerResult.finalTags,
+        ghlOpportunityUpdate: customerResult.ghlOpportunityUpdate,
+        duration: duration
+      };
+    }
+
+    // ===== PRIORITY 3: Check for Disqualification Tags =====
     const disqualificationCheck = checkDisqualification(webhookTags);
 
     if (disqualificationCheck.isDisqualified) {

@@ -274,7 +274,7 @@ async function processRecordingReady(contact, payload) {
       const uploadResult = await uploadAudioToConversation(
         contact.id,
         transcription.result.audioBuffer,
-        formatTranscriptionForGHL(transcription.result),
+        formatTranscriptionForGHL(transcription.result, payload.recording_url),
         payload.call_id,
         payload.recording_url,
         payload.internal_number
@@ -284,7 +284,7 @@ async function processRecordingReady(contact, payload) {
         console.log('✅ Audio uploaded successfully to conversation!');
 
         // Add success note (formatTranscriptionForGHL already includes correct checkmark)
-        noteText = formatTranscriptionForGHL(transcription.result);
+        noteText = formatTranscriptionForGHL(transcription.result, payload.recording_url);
 
         const result = await addNoteToGHLContact(contact.id, noteText);
 
@@ -304,7 +304,7 @@ async function processRecordingReady(contact, payload) {
         console.log(`⚠️ Audio upload failed: ${uploadResult.error}`);
 
         // Fallback to regular note with transcription
-        noteText = `⚠️ Upload audio fallito: ${uploadResult.error}\n\n${formatTranscriptionForGHL(transcription.result)}`;
+        noteText = `⚠️ Upload audio fallito: ${uploadResult.error}\n\n${formatTranscriptionForGHL(transcription.result, payload.recording_url)}`;
       }
 
     } else {

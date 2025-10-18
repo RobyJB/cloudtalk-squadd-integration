@@ -1,0 +1,210 @@
+
+=== WEBHOOK RECEIVED: 2025-10-01T11:41:09.147Z ===
+Provider: cloudtalk
+Webhook Type: new-tag
+Headers: {
+  "accept": "*/*",
+  "accept-encoding": "gzip, deflate, br",
+  "content-length": "327",
+  "content-type": "application/json",
+  "user-agent": "CloudTalk-Test/1.0",
+  "x-cloudtalk-signature": "test-signature",
+  "host": "localhost:3000",
+  "connection": "keep-alive"
+}
+User-Agent: CloudTalk-Test/1.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "event_type": "new-tag",
+  "tag_name": "Già cliente",
+  "tag_id": "tag-123",
+  "contact_id": "ct-contact-456",
+  "external_number": "+393513416607",
+  "contact_name": "Roberto Bondici",
+  "agent_id": "agent-789",
+  "agent_name": "Test Agent",
+  "call_id": "test-call-1759318869132",
+  "timestamp": "2025-10-01T11:41:09.132Z",
+  "location_id": "DfxGoORmPoL5Z1OcfYJM"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-10-01T11:42:04.874Z ===
+Provider: cloudtalk
+Webhook Type: new-tag
+Headers: {
+  "accept": "*/*",
+  "accept-encoding": "gzip, deflate, br",
+  "content-length": "327",
+  "content-type": "application/json",
+  "user-agent": "CloudTalk-Test/1.0",
+  "x-cloudtalk-signature": "test-signature",
+  "host": "localhost:3000",
+  "connection": "keep-alive"
+}
+User-Agent: CloudTalk-Test/1.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "event_type": "new-tag",
+  "tag_name": "Già cliente",
+  "tag_id": "tag-123",
+  "contact_id": "ct-contact-456",
+  "external_number": "+393513416607",
+  "contact_name": "Roberto Bondici",
+  "agent_id": "agent-789",
+  "agent_name": "Test Agent",
+  "call_id": "test-call-1759318924856",
+  "timestamp": "2025-10-01T11:42:04.856Z",
+  "location_id": "DfxGoORmPoL5Z1OcfYJM"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-10-01T11:42:38.393Z ===
+Provider: cloudtalk
+Webhook Type: new-tag
+Headers: {
+  "accept": "*/*",
+  "accept-encoding": "gzip, deflate, br",
+  "content-length": "337",
+  "content-type": "application/json",
+  "user-agent": "node-fetch",
+  "x-cloudtalk-signature": "test-signature",
+  "host": "localhost:3000",
+  "connection": "keep-alive"
+}
+User-Agent: node-fetch
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "event_type": "new-tag",
+  "tag_name": "Non risponde",
+  "tag_id": "tag-1759318958386",
+  "contact_id": "ct-contact-456",
+  "external_number": "+393513416607",
+  "contact_name": "Roberto Bondici",
+  "agent_id": "agent-789",
+  "agent_name": "Test Agent",
+  "call_id": "test-call-1759318958386",
+  "timestamp": "2025-10-01T11:42:38.386Z",
+  "location_id": "DfxGoORmPoL5Z1OcfYJM"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-10-01T11:42:41.785Z ===
+Provider: cloudtalk
+Webhook Type: new-tag
+Headers: {
+  "accept": "*/*",
+  "accept-encoding": "gzip, deflate, br",
+  "content-length": "332",
+  "content-type": "application/json",
+  "user-agent": "node-fetch",
+  "x-cloudtalk-signature": "test-signature",
+  "host": "localhost:3000",
+  "connection": "keep-alive"
+}
+User-Agent: node-fetch
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "event_type": "new-tag",
+  "tag_name": "Bambino",
+  "tag_id": "tag-1759318961779",
+  "contact_id": "ct-contact-456",
+  "external_number": "+393513416607",
+  "contact_name": "Roberto Bondici",
+  "agent_id": "agent-789",
+  "agent_name": "Test Agent",
+  "call_id": "test-call-1759318961779",
+  "timestamp": "2025-10-01T11:42:41.779Z",
+  "location_id": "DfxGoORmPoL5Z1OcfYJM"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-10-01T11:42:46.414Z ===
+Provider: cloudtalk
+Webhook Type: new-tag
+Headers: {
+  "accept": "*/*",
+  "accept-encoding": "gzip, deflate, br",
+  "content-length": "338",
+  "content-type": "application/json",
+  "user-agent": "node-fetch",
+  "x-cloudtalk-signature": "test-signature",
+  "host": "localhost:3000",
+  "connection": "keep-alive"
+}
+User-Agent: node-fetch
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "event_type": "new-tag",
+  "tag_name": "Numero errato",
+  "tag_id": "tag-1759318966409",
+  "contact_id": "ct-contact-456",
+  "external_number": "+393513416607",
+  "contact_name": "Roberto Bondici",
+  "agent_id": "agent-789",
+  "agent_name": "Test Agent",
+  "call_id": "test-call-1759318966409",
+  "timestamp": "2025-10-01T11:42:46.409Z",
+  "location_id": "DfxGoORmPoL5Z1OcfYJM"
+}
+
+==============================
+
+
+=== WEBHOOK RECEIVED: 2025-10-01T11:42:48.576Z ===
+Provider: cloudtalk
+Webhook Type: new-tag
+Headers: {
+  "accept": "*/*",
+  "accept-encoding": "gzip, deflate, br",
+  "content-length": "335",
+  "content-type": "application/json",
+  "user-agent": "node-fetch",
+  "x-cloudtalk-signature": "test-signature",
+  "host": "localhost:3000",
+  "connection": "keep-alive"
+}
+User-Agent: node-fetch
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "event_type": "new-tag",
+  "tag_name": "Segreteria",
+  "tag_id": "tag-1759318968569",
+  "contact_id": "ct-contact-456",
+  "external_number": "+393513416607",
+  "contact_name": "Roberto Bondici",
+  "agent_id": "agent-789",
+  "agent_name": "Test Agent",
+  "call_id": "test-call-1759318968569",
+  "timestamp": "2025-10-01T11:42:48.569Z",
+  "location_id": "DfxGoORmPoL5Z1OcfYJM"
+}
+
+==============================
+

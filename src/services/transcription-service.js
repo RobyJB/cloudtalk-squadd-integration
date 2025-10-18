@@ -194,63 +194,80 @@ async function transcribeAudio(filePath) {
 }
 
 /**
- * Two-phase analysis system for Squadd sales calls
+ * Three-phase analysis system for Squadd sales calls
  * @param {string} transcription - The transcribed text
  * @returns {Promise<{success: boolean, analysis?: object, error?: string}>}
  */
 export async function extractKeyPoints(transcription) {
   try {
-    log(`🔍 Starting two-phase Squadd call analysis...`);
+    log(`🔍 Starting three-phase Squadd call analysis...`);
 
-    // PHASE 1: Initial analysis and speaker identification
-    const phase1Result = await performPhase1Analysis(transcription);
+    // PHASE 1: Data extraction (GPT-5 nano)
+    const phase1Result = await performPhase1DataExtraction(transcription);
     if (!phase1Result.success) {
       return phase1Result;
     }
 
-    // Check if call is not substantial or voicemail - skip Phase 2 if so
-    if (phase1Result.analysis.call_type === 'non_sostanziosa') {
-      log(`⚠️ Non-substantial call detected, skipping Phase 2 coaching`);
+    // Check if call is voicemail - skip further analysis
+    if (phase1Result.data.call_type === 'segreteria') {
+      log(`📞 Voicemail detected, skipping avatar classification`);
 
       return {
         success: true,
         analysis: {
-          ...phase1Result.analysis,
-          coaching: null // No coaching for non-substantial calls
+          call_type: 'segreteria',
+          extracted_data: phase1Result.data,
+          avatar: null,
+          bant_final: null,
+          advisor_notes: null
         }
       };
     }
 
-    if (phase1Result.analysis.call_type === 'segreteria') {
-      log(`📞 Voicemail detected, skipping Phase 2 coaching`);
+    // Check if call is non-substantial - skip coaching
+    if (phase1Result.data.call_type === 'non_sostanziosa') {
+      log(`⚠️ Non-substantial call detected, skipping avatar classification`);
 
       return {
         success: true,
         analysis: {
-          ...phase1Result.analysis,
-          coaching: null // No coaching for voicemail calls
+          call_type: 'non_sostanziosa',
+          call_summary: phase1Result.data.call_summary,
+          extracted_data: phase1Result.data,
+          avatar: null,
+          bant_final: null,
+          advisor_notes: null
         }
       };
     }
 
-    // PHASE 2: Validation and coaching feedback (only for substantial calls)
-    const phase2Result = await performPhase2Coaching(transcription, phase1Result.analysis);
+    // PHASE 2: Avatar classification (GPT-5)
+    const phase2Result = await performPhase2AvatarClassification(phase1Result.data, transcription);
     if (!phase2Result.success) {
       return phase2Result;
     }
 
-    log(`✅ Two-phase analysis completed successfully`);
+    // PHASE 3: BANT validation and advisor notes (GPT-5)
+    const phase3Result = await performPhase3BANTAndNotes(phase1Result.data, phase2Result.classification, transcription);
+    if (!phase3Result.success) {
+      return phase3Result;
+    }
+
+    log(`✅ Three-phase analysis completed successfully`);
 
     return {
       success: true,
       analysis: {
-        ...phase1Result.analysis,
-        coaching: phase2Result.coaching
+        call_type: 'sostanziosa',
+        extracted_data: phase1Result.data,
+        avatar_classification: phase2Result.classification,
+        bant_final: phase3Result.bant,
+        advisor_notes: phase3Result.notes
       }
     };
 
   } catch (error) {
-    log(`❌ Error in two-phase analysis: ${error.message}`);
+    log(`❌ Error in three-phase analysis: ${error.message}`);
     return {
       success: false,
       error: error.message
@@ -259,14 +276,14 @@ export async function extractKeyPoints(transcription) {
 }
 
 /**
- * Phase 1: Speaker identification and basic call analysis
+ * Phase 1: Data extraction with GPT-5 nano (fast and economical)
  */
-async function performPhase1Analysis(transcription) {
+async function performPhase1DataExtraction(transcription) {
   try {
-    log(`📋 Phase 1: Analyzing speakers and extracting call data...`);
+    log(`📋 Phase 1: Extracting base data from call...`);
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4.1',
+      model: 'gpt-5-nano',
       messages: [
         {
           role: 'system',
@@ -274,37 +291,25 @@ async function performPhase1Analysis(transcription) {
 
 CONTESTO: I setter di Squadd chiamano lead aziendali per qualificarli e fissare appuntamenti demo.
 
-IDENTIFICAZIONE SPEAKER:
-- SETTER: Si presenta come Squadd, fa domande sul business del lead, propone appuntamenti
-- LEAD: Risponde a domande sulla propria azienda, chiede informazioni su Squadd
+ESTRAI le seguenti informazioni dalla chiamata:
 
-IMPORTANTE: Rileva il tipo di chiamata:
-- SOSTANZIOSA: Dialogo reale tra setter e lead con contenuto commerciale significativo
-- NON AVVENUTA: Chiamate brevi, accordi per ricontattarsi, rifiuti immediati, note tecniche, test
-- SEGRETERIA: Messaggio registrato di segreteria telefonica, nessuna conversazione reale
-
-ANALIZZA e rispondi in JSON:
 {
   "call_type": "sostanziosa/non_sostanziosa/segreteria",
-  "call_summary": "Se non sostanziosa, riassunto veloce di cosa è successo nella chiamata (es: 'Lead e setter si sono accordati per risentirsi domani alle 15:00' oppure 'Lead ha mostrato disinteresse immediato')",
-  "speakers": {
-    "setter_identified": true/false,
-    "lead_identified": true/false,
-    "confidence": "Alta/Media/Bassa"
+  "call_summary": "Breve riassunto di cosa è successo",
+  "nome_advisor": "Nome del setter/advisor Squadd",
+  "settore_lead": "Settore business del lead",
+  "dimensione_attivita": "Numero dipendenti o dimensione (es: '5 dipendenti', 'solo titolare', '10+', ecc)",
+  "software_in_uso": ["lista", "di", "software"],
+  "automazioni_in_uso": ["lista", "o", "Nessuna"],
+  "problematiche_attuali": ["problema 1", "problema 2"],
+  "necessita": ["necessit\u00e0 1", "necessit\u00e0 2"],
+  "bant_preliminare": {
+    "budget": "presente/incerto/assente",
+    "autorita": "presente/incerto/assente",
+    "necessita": "presente/incerto/assente",
+    "tempistica": "presente/incerto/assente"
   },
-  "call_outcome": {
-    "appuntamento_fissato": true/false,
-    "motivo_se_non_fissato": "spiegazione breve"
-  },
-  "lead_info": {
-    "azienda": "nome azienda se menzionato",
-    "settore": "settore business se chiaro",
-    "software_attuale": "software già in uso",
-    "team_vendita": "sì/no/non chiaro",
-    "fa_pubblicità": "sì/no/non chiaro"
-  },
-  "sentiment": "Positivo/Neutro/Negativo",
-  "note_aggiuntive": "osservazioni importanti"
+  "appuntamento_fissato": true/false
 }`
         },
         {
@@ -313,21 +318,21 @@ ANALIZZA e rispondi in JSON:
         }
       ],
       temperature: 0.2,
-      max_tokens: 800
+      max_completion_tokens: 1000
     });
 
     const response = completion.choices[0].message.content;
-    const analysis = JSON.parse(response);
+    const data = JSON.parse(response);
 
-    log(`✅ Phase 1 completed - speakers identified: ${analysis.speakers.confidence}`);
+    log(`✅ Phase 1 completed - call type: ${data.call_type}`);
 
     return {
       success: true,
-      analysis: analysis
+      data: data
     };
 
   } catch (error) {
-    logError(`❌ Error in Phase 1 analysis: ${error.message}`);
+    logError(`❌ Error in Phase 1: ${error.message}`);
     return {
       success: false,
       error: error.message
@@ -336,87 +341,231 @@ ANALIZZA e rispondi in JSON:
 }
 
 /**
- * Phase 2: BANT analysis and coaching feedback according to Squadd framework
+ * Phase 2: Avatar Classification with GPT-5
+ * Determines the correct avatar (1-7) and if lead is in/out of target
  */
-async function performPhase2Coaching(transcription, phase1Analysis) {
+async function performPhase2AvatarClassification(extractedData, transcription) {
   try {
-    log(`🎯 Phase 2: BANT analysis and coaching feedback...`);
+    log(`🎯 Phase 2: Classifying lead avatar...`);
+
+    const avatarRules = `# AVATAR LEAD SQUADD
+
+## Avatar 1:
+- **Settore**: Qualsiasi tranne parrucchieri, ristoranti, networker, bar
+- **Numero dipendenti**: 3+
+- **Necessità**: Automatizzare appuntamenti, promemoria, messaggi whatsapp automatici, gestire lead generation/pubblicità, nutrire automaticamente i clienti, recuperare lead persi, metriche per tracciare le attività, chatbot AI (per chat, NO chiamate), richiedere recensioni, gestire pubblicazioni social, convertire più lead
+- **Problemi**: Lavoro disorganizzato, mancanza processo specifico, non converte i lead, dimentica task, non ha controllo sui collaboratori
+
+## Avatar 2:
+- **Settore**: Agenzia di marketing
+- **Numero dipendenti**: qualsiasi
+- **Necessità**: rivendere il sistema, proporre il sistema ai propri clienti, gestire i propri clienti, automatizzare le task, gestire la lead generation, dare un servizio aggiuntivo ai propri clienti
+- **Problemi**: Non riesce a centralizzare tutti i clienti, non riesce a tenere sotto controllo i dati dei clienti, spende troppo per i software
+
+## Avatar 3:
+- **Settore**: Catene di negozi o brand (piccole e grandi)
+- **Numero di punti vendita**: 1+
+- **Necessità**: Centralizzare i dati e il lavoro, gestire i clienti meglio, seguire meglio i lead, convertire più lead dalle sponsorizzate, nutrire i clienti, far rimanere più a lungo i clienti, tenere sotto controllo le attività dei collaboratori/dipendenti
+- **Problemi**: Non riesce a centralizzare il lavoro, non riesce a tenere sotto controllo i dati e le attività, hanno troppi software, non hanno nessun software per aiutarsi con le attività, perdono troppo tempo, seguono male il cliente
+
+## Avatar 4:
+- **Settore**: TUTTE le aziende che lavorano online
+- **Numero dipendenti**: qualsiasi
+- **Necessità**: convertire più lead dalle pubblicità, seguire meglio i lead, nutrire i clienti, automatizzare i processi, automatizzare le task, promemoria per gli appuntamenti, monitorare le attività del team vendita/setting
+- **Problemi**: si perdono per strada tanti lead, troppi software, costi elevati dei software, poco supporto nell'utilizzo dei software, i clienti non vengono seguiti bene dopo la vendita, troppe task manuali
+
+## Avatar 5:
+- **Settore**: TUTTE le aziende che fanno pubblicità tramite facebook/instagram/meta/google
+- **Necessità**: Centralizzare i dati e il lavoro, gestire i clienti meglio, seguire meglio i lead, convertire più lead dalle sponsorizzate, nutrire i clienti, far rimanere più a lungo i clienti, tenere sotto controllo le attività dei collaboratori/dipendenti
+- **Problemi**: si perdono per strada tanti lead, i clienti non vengono seguiti bene dopo la vendita, troppe task manuali, mancanza di un posto unico dove seguire i lead, non c'è un processo di vendita specifico da seguire
+
+## Avatar 6:
+- **Settore**: Chi utilizza già GoHighLevel
+- **Numero dipendenti**: qualsiasi
+- **Necessità**: usando già il nostro stesso programma, avrà dei vantaggi a passare da noi
+- **Punti di forza**: a loro, in particolare, regaliamo whatsapp (quello da 30€ al mese), in più hanno assistenza dedicata in live chat in italiano
+
+## Avatar 7:
+- **Settore**: qualsiasi
+- **Necessità**: vuole lead o fare soldi o fare pubblicità, vuole servizi di marketing
+- **ATTENZIONE**: Assicurarsi che ci sia il budget. La soluzione lead generation costa €750/mese
+
+# LEAD FUORI TARGET
+
+## Avatar FT1 - Parrucchieri:
+- **Eccezione**: SOLO se fa pubblicità su facebook/instagram/google E necessità è automatizzare lead generation, convertire lead, inviare promemoria, richiedere recensioni
+- Altrimenti: FUORI TARGET
+
+## Avatar FT2 - Commerciali/venditori/consulenti:
+- Se vuole: Inviare massivamente whatsapp senza essere bloccati, whatsapp gratuiti senza pagare
+- FUORI TARGET
+
+## Avatar FT3 - Ristoranti e bar:
+- SEMPRE FUORI TARGET (hanno bisogno di prenotazione tavoli che non abbiamo)
+
+## Avatar FT4 - Network di qualsiasi tipo:
+- SEMPRE FUORI TARGET (vogliono spammare su whatsapp)
+
+## Avatar FT5 - Software di fatturazione:
+- Se vuole SOLO fatturazione: FUORI TARGET
+- Se interessato anche ad altro: IN TARGET (proporre integrazione fatture in cloud)
+
+## Avatar FT6 - Affitti brevi:
+- Se vuole: gestire più canali comunicazione, prenotazione immobili, channel manager
+- FUORI TARGET
+- Eccezione: Se fa pubblicità può essere in target
+
+# CAMPANELLI D'ALLARME
+
+🔔 **Invio massivo whatsapp SENZA API/SENZA PAGARE**: Se vuole SOLO whatsapp massivi gratis → FUORI TARGET. Verificare prima se ha altre necessità.
+
+🔔 **Affitti brevi/immobiliare**: Se serve sistema prenotazione immobili tipo airbnb/booking o gestore canali → FUORI TARGET`;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4.1',
+      model: 'gpt-5',
       messages: [
         {
           role: 'system',
-          content: `Sei un coach di chiamata esperto per Squadd.
-Dal trascritto di chiamata che ricevi, e basandoti sulle regole che hai, dai un verdetto alla chiamata.
+          content: `Sei un esperto di classificazione lead per Squadd.
 
-# Ruolo e Obiettivo
-L'obiettivo è assicurarsi che il setter segua lo script, faccia un'analisi corretta, e non lasci spazio a dubbi.
+REGOLE AVATAR:
+${avatarRules}
 
-Prima di dare qualsiasi feedback (scritto normalmente, a mo' di paragrafo), dai un riassunto:
+IMPORTANTE: 
+- Se manca un criterio BANT (Budget, Autorità, Necessità, Tempistica), il lead rischia di essere fuori target
+- Formula ideale: B.A.N.T. + Avatar
 
-## Categorie di lead:
-🟢 Categoria 1 - Conosce già il software GoHighLevel oppure uno dei competitor: Delera, Leadfather, Arcanis, Growi, Unique.ai
-🔵 Categoria 2 - Usa già software di marketing, CRM o automazioni.
-🟡 Categoria 3 - Non usa nessuno strumento, o al massimo fogli Google e similari, ma riconsoce di avere un problema ed è chiaro che sia alla ricerca di una soluzione.
-🔴 Categoria 4 - Non usa strumenti di nessun tipo, e non gli è chiaro il tipo di problema che ha. L'obiettivo qui è capire se la persona vuole comunque migliorare la propria azienda/operatività.
-
-## B.A.N.T Framework:
-Budget -> il budget non deve essere esplicitamente nominato dal setter
-Autorità -> l'autorità solitamente è impliciata; se però hai dubbi, dalla per incerta o non esplorata.
-Necessità -> La necessità deriva dall'urgenza e dalla presenza di un problema reale che possiamo risolvere
-Tempistica -> La tempistica invece si rivolge alla tempistica di adozione della nostra soluzione; solitamente implicita quando c'è la necessità
-
-## Fasi dello script:
-Fase 1 - Introduzione, benvenuto, piacere di conoscerti
-Fase 2 - Analisi della situazione ed estrapolazione del bisogno
-Fase 3 - Contestualizzo la mia soluzione e la contrappongo ai suoi problemi
-Fase 4 - Presa appuntamento
-
-Rispondi in questo formato JSON:
+Rispondi in JSON:
 {
-  "riassunto": {
-    "appuntamento": "✅ Fissato / ❌ Non fissato",
-    "categoria_lead": "🟢 Categoria 1 / 🔵 Categoria 2 / 🟡 Categoria 3 / 🔴 Categoria 4",
-    "bant": {
-      "budget": "✅ presente / ⚠️ incerto / ❌ non esplorato",
-      "autorità": "✅ presente / ⚠️ incerto / ❌ non esplorato",
-      "necessità": "✅ presente / ⚠️ incerto / ❌ non esplorato",
-      "tempistica": "✅ presente / ⚠️ incerto / ❌ non esplorato"
+  "avatar_numero": 1-7 o null se fuori target,
+  "avatar_descrizione": "Descrizione breve avatar",
+  "in_target": true/false,
+  "motivazione_target": "Perché è in/fuori target",
+  "campanelli_allarme": ["lista", "campanelli"] o [],
+  "confidenza": "Alta/Media/Bassa"
+}`
+        },
+        {
+          role: 'user',
+          content: `Classifica questo lead:
+
+DATI ESTRATTI:
+${JSON.stringify(extractedData, null, 2)}
+
+TRASCRIZIONE COMPLETA (per contesto):
+${transcription.substring(0, 2000)}...`
+        }
+      ],
+      temperature: 0.3,
+      max_completion_tokens: 800
+    });
+
+    const response = completion.choices[0].message.content;
+    const classification = JSON.parse(response);
+
+    log(`✅ Phase 2 completed - Avatar: ${classification.avatar_numero || 'Fuori Target'}`);
+
+    return {
+      success: true,
+      classification: classification
+    };
+
+  } catch (error) {
+    logError(`❌ Error in Phase 2: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Phase 3: BANT Validation and Advisor Notes with GPT-5
+ * Provides detailed BANT analysis and feedback for the advisor
+ */
+async function performPhase3BANTAndNotes(extractedData, avatarClassification, transcription) {
+  try {
+    log(`📊 Phase 3: BANT validation and advisor notes...`);
+
+    const bantRules = `# B.A.N.T. Framework Squadd
+
+**Budget**: Il budget non deve essere esplicitamente nominato dal setter. Analizza i dettagli: un networker difficilmente ha soldi, mentre un'azienda con 10 dipendenti attiva da 10 anni li ha sicuramente.
+
+**Autorità**: L'autorità solitamente è implicita. Se il lead non può decidere autonomamente o non può trasmettere correttamente le info ai superiori, non ha autorità.
+
+**Necessità**: Determinare se ha un bisogno CONCRETO o è solo curioso. La necessità deve essere REALE.
+
+**Tempistica**: Non chiedere direttamente "vuoi implementarlo oggi?". Analizzare la conversazione: se ha necessità urgente, ha già provato soluzioni senza successo → ha giusta tempistica. Se parla di "dopo l'estate", "a fine anno", "l'anno prossimo" → NON ha tempistica.`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-5',
+      messages: [
+        {
+          role: 'system',
+          content: `Sei un coach esperto di vendita per Squadd.
+
+${bantRules}
+
+Analizza la chiamata e fornisci:
+1. BANT dettagliato con spiegazioni
+2. Note per l'advisor su cosa ha fatto bene/male
+
+Rispondi in JSON:
+{
+  "bant": {
+    "budget": {
+      "status": "✅ Presente / ⚠️ Incerto / ❌ Assente",
+      "spiegazione": "Perché hai dato questo verdetto"
+    },
+    "autorita": {
+      "status": "✅ Presente / ⚠️ Incerto / ❌ Assente",
+      "spiegazione": "Perché hai dato questo verdetto"
+    },
+    "necessita": {
+      "status": "✅ Presente / ⚠️ Incerto / ❌ Assente",
+      "spiegazione": "Perché hai dato questo verdetto"
+    },
+    "tempistica": {
+      "status": "✅ Presente / ⚠️ Incerto / ❌ Assente",
+      "spiegazione": "Perché hai dato questo verdetto"
     }
   },
-  "coaching_feedback": "Paragrafo di feedback caldo, empatico e contestualizzato per il setter. Massimo 200 parole. Indica passaggi specifici della chiamata. Dai feedback sinceri su cosa migliorare.",
-  "fasi_script_seguite": ["Fase 1", "Fase 2", "Fase 3", "Fase 4"],
+  "note_advisor": "Feedback dettagliato per l'advisor. Cosa ha fatto bene, cosa migliorare. Massimo 300 parole. Sii specifico e costruttivo.",
   "confidenza_analisi": "Alta/Media/Bassa"
 }`
         },
         {
           role: 'user',
-          content: `Analizza questa chiamata per coaching:
+          content: `Analizza questa chiamata:
 
-DATI FASE 1:
-${JSON.stringify(phase1Analysis, null, 2)}
+DATI ESTRATTI:
+${JSON.stringify(extractedData, null, 2)}
+
+AVATAR CLASSIFICATO:
+${JSON.stringify(avatarClassification, null, 2)}
 
 TRASCRIZIONE COMPLETA:
 ${transcription}`
         }
       ],
       temperature: 0.3,
-      max_tokens: 1000
+      max_completion_tokens: 1200
     });
 
     const response = completion.choices[0].message.content;
-    const coaching = JSON.parse(response);
+    const analysis = JSON.parse(response);
 
-    log(`✅ Phase 2 completed - coaching generated`);
+    log(`✅ Phase 3 completed - BANT analysis done`);
 
     return {
       success: true,
-      coaching: coaching
+      bant: analysis.bant,
+      notes: analysis.note_advisor,
+      confidenza: analysis.confidenza_analisi
     };
 
   } catch (error) {
-    logError(`❌ Error in Phase 2 coaching: ${error.message}`);
+    logError(`❌ Error in Phase 3: ${error.message}`);
     return {
       success: false,
       error: error.message
@@ -632,75 +781,129 @@ export async function processRecordingTranscription(audioUrl) {
 }
 
 /**
- * Format transcription for GoHighLevel note
+ * Format transcription for GoHighLevel note - NEW TEMPLATE with recording URL
  * @param {object} transcriptionResult - Result from processRecordingTranscription
+ * @param {string} recordingUrl - CloudTalk recording URL
  * @returns {string} Formatted note content
  */
-export function formatTranscriptionForGHL(transcriptionResult) {
+export function formatTranscriptionForGHL(transcriptionResult, recordingUrl) {
   const { transcription, analysis, processedAt } = transcriptionResult;
-
-  // Fallback for old format compatibility (only if analysis completely failed)
-  if (!analysis) {
-    const { keyPoints = [], summary = "Analisi non disponibile" } = transcriptionResult;
-    return `📋 Riassunto: ${summary}
-
-🔑 Punti chiave:
-${keyPoints.map((point, index) => `${index + 1}. ${point}`).join('\n')}
-
-📝 Trascrizione completa:
-${transcription}
-
-⏰ Elaborata: ${new Date(processedAt).toLocaleString('it-IT')}`;
-  }
 
   // Check if this is voicemail
   if (analysis.call_type === 'segreteria') {
-    return `📵 SEGRETERIA - CLOUDTALK`;
+    return `🎧 REGISTRAZIONE CHIAMATA:
+${recordingUrl}
+
+═══════════════════════════════════════
+
+📵 SEGRETERIA - CLOUDTALK
+
+La chiamata è caduta su segreteria telefonica.
+
+═══════════════ TRASCRIZIONE ═══════════════
+
+${transcription}`;
   }
 
   // Check if this is a non-substantial call
   if (analysis.call_type === 'non_sostanziosa') {
-    return `✔︎ Risposto - conversazione non avvenuta
+    return `🎧 REGISTRAZIONE CHIAMATA:
+${recordingUrl}
 
-📋 Riassunto:
+═══════════════════════════════════════
+
+✔︎ Risposto - conversazione non avvenuta
+
+📋 RIASSUNTO:
 ${analysis.call_summary || 'Chiamata tecnica o senza dialogo commerciale'}
 
-📝 Trascrizione:
+═══════════════ TRASCRIZIONE ═══════════════
+
 ${transcription}`;
   }
 
   // Full analysis format for substantial calls
-  const { coaching, speakers, call_outcome, lead_info, sentiment } = analysis;
+  const { extracted_data, avatar_classification, bant_final, advisor_notes } = analysis;
 
-  return `✔︎ Conversazione effettuata
+  // Build problematiche section
+  const problematiche = extracted_data.problematiche_attuali && extracted_data.problematiche_attuali.length > 0
+    ? extracted_data.problematiche_attuali.map(p => `• ${p}`).join('\n')
+    : 'Nessuna problematica specifica emersa';
 
-${coaching.riassunto.appuntamento}
+  // Build necessità section
+  const necessita = extracted_data.necessita && extracted_data.necessita.length > 0
+    ? extracted_data.necessita.map(n => `• ${n}`).join('\n')
+    : 'Nessuna necessità specifica emersa';
 
-${coaching.riassunto.categoria_lead}
+  // Build software section
+  const software = extracted_data.software_in_uso && extracted_data.software_in_uso.length > 0
+    ? extracted_data.software_in_uso.join(', ')
+    : 'Nessuno';
 
-📊 B.A.N.T. Framework:
-• Budget: ${coaching.riassunto.bant.budget}
-• Autorità: ${coaching.riassunto.bant.autorità}
-• Necessità: ${coaching.riassunto.bant.necessità}
-• Tempistica: ${coaching.riassunto.bant.tempistica}
+  // Build automazioni section
+  const automazioni = extracted_data.automazioni_in_uso && extracted_data.automazioni_in_uso.length > 0
+    ? extracted_data.automazioni_in_uso.join(', ')
+    : 'Nessuna';
 
-🎯 COACHING FEEDBACK:
-${coaching.coaching_feedback}
+  // Avatar status emoji
+  const avatarStatus = avatar_classification.in_target ? '🟢 IN TARGET' : '🔴 FUORI TARGET';
+  const avatarInfo = avatar_classification.avatar_numero 
+    ? `Avatar ${avatar_classification.avatar_numero} - ${avatar_classification.avatar_descrizione}`
+    : 'Fuori target';
 
-📋 DETTAGLI CHIAMATA:
-• Sentiment: ${sentiment}
-• Speaker identificati: ${speakers.confidence}
-• Lead: ${lead_info.azienda || 'Non specificato'} (${lead_info.settore || 'Settore non chiaro'})
-• Software attuale: ${lead_info.software_attuale || 'Non specificato'}
-• Team vendita: ${lead_info.team_vendita || 'Non chiaro'}
+  // Campanelli d'allarme section
+  const campanelliSection = avatar_classification.campanelli_allarme && avatar_classification.campanelli_allarme.length > 0
+    ? `\n\n📊 CAMPANELLI D'ALLARME:\n${avatar_classification.campanelli_allarme.map(c => `🔔 ${c}`).join('\n')}`
+    : '';
 
-🔄 Fasi script seguite: ${coaching.fasi_script_seguite.join(', ')}
+  return `🎧 REGISTRAZIONE CHIAMATA:
+${recordingUrl}
 
-📝 Trascrizione completa:
+═══════════════════════════════════════
+
+👤 NOME ADVISOR: ${extracted_data.nome_advisor || 'Non specificato'}
+
+🎯 AVATAR LEAD: ${avatarInfo}
+
+${avatarStatus}
+${avatar_classification.motivazione_target}
+
+══════════════ B.A.N.T. ══════════════
+
+💰 BUDGET: ${bant_final.budget.status}
+${bant_final.budget.spiegazione}
+
+👔 AUTORITÀ: ${bant_final.autorita.status}
+${bant_final.autorita.spiegazione}
+
+🎯 NECESSITÀ: ${bant_final.necessita.status}
+${bant_final.necessita.spiegazione}
+
+⏰ TEMPISTICA: ${bant_final.tempistica.status}
+${bant_final.tempistica.spiegazione}
+
+══════════════ DETTAGLI LEAD ══════════════
+
+🏢 SETTORE: ${extracted_data.settore_lead || 'Non specificato'}
+👥 DIMENSIONE: ${extracted_data.dimensione_attivita || 'Non specificato'}
+💻 SOFTWARE IN UTILIZZO: ${software}
+🤖 AUTOMAZIONI IN UTILIZZO: ${automazioni}
+
+🚨 PROBLEMATICHE ATTUALI:
+${problematiche}
+
+✨ NECESSITÀ EMERSE:
+${necessita}${campanelliSection}
+
+══════════════ NOTE ADVISOR ══════════════
+
+${advisor_notes}
+
+══════════════ TRASCRIZIONE ══════════════
+
 ${transcription}
 
-⏰ Elaborata: ${new Date(processedAt).toLocaleString('it-IT')}
-🤖 Confidenza analisi: ${coaching.confidenza_analisi}`;
+⏰ Elaborata: ${new Date(processedAt).toLocaleString('it-IT')}`;
 }
 
 export default {

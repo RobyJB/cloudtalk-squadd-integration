@@ -190,15 +190,17 @@ export async function sendMessageWithAttachment(conversationId, message, fileUrl
  * @param {string} callId - CloudTalk Call ID
  * @param {string} audioUrl - CloudTalk audio URL
  * @param {string} phoneNumber - External phone number
+ * @param {string} internalNumber - Internal CloudTalk number (from webhook payload)
  * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
  */
-export async function sendCallMessage(conversationId, conversationProviderId, transcriptionText, callId, audioUrl, phoneNumber) {
+export async function sendCallMessage(conversationId, conversationProviderId, transcriptionText, callId, audioUrl, phoneNumber, internalNumber) {
   try {
     log(`📞 ===== SENDING CALL DATA TO GHL WEBHOOK =====`);
     log(`📞 Conversation ID: ${conversationId}`);
     log(`📞 Call ID: ${callId}`);
     log(`📞 Audio URL: ${audioUrl}`);
     log(`📞 Phone Number: ${phoneNumber}`);
+    log(`📞 Internal Number: ${internalNumber}`);
 
     const webhookUrl = 'https://services.leadconnectorhq.com/hooks/DfxGoORmPoL5Z1OcfYJM/webhook-trigger/fb9f35d9-7b38-472e-a8b4-cc8dcc9085ce';
 
@@ -212,7 +214,7 @@ export async function sendCallMessage(conversationId, conversationProviderId, tr
       transcription: transcriptionText,
       call: {
         to: phoneNumber,
-        from: '+40312296109', // CloudTalk internal number
+        from: internalNumber || '+40312296109', // Use internal_number from payload, fallback to default
         status: 'completed'
       },
       timestamp: new Date().toISOString(),
@@ -262,9 +264,10 @@ export async function sendCallMessage(conversationId, conversationProviderId, tr
  * @param {string} transcriptionText - Transcription text
  * @param {string} callId - CloudTalk Call ID
  * @param {string} audioUrl - CloudTalk audio URL
+ * @param {string} internalNumber - Internal CloudTalk number (optional)
  * @returns {Promise<{success: boolean, result?: object, error?: string}>}
  */
-export async function uploadAudioToConversation(contactId, audioBuffer, transcriptionText, callId, audioUrl) {
+export async function uploadAudioToConversation(contactId, audioBuffer, transcriptionText, callId, audioUrl, internalNumber) {
   try {
     log(`🚀 Starting call message workflow for contact: ${contactId}`);
 
@@ -299,7 +302,8 @@ export async function uploadAudioToConversation(contactId, audioBuffer, transcri
       transcriptionText,
       callId,
       audioUrl,
-      conversation.phone
+      conversation.phone,
+      internalNumber
     );
 
     if (!messageResult.success) {

@@ -276,7 +276,8 @@ async function processRecordingReady(contact, payload) {
         transcription.result.audioBuffer,
         formatTranscriptionForGHL(transcription.result),
         payload.call_id,
-        payload.recording_url
+        payload.recording_url,
+        payload.internal_number
       );
 
       if (uploadResult.success) {

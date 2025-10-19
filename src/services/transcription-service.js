@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import fetch from 'node-fetch';
 import { log, logError } from '../logger.js';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -37,11 +37,6 @@ async function downloadAudio(audioUrl) {
   try {
     log(`🎵 Downloading audio from: ${audioUrl}`);
 
-    const response = await fetch(audioUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
     // Create temp directory if it doesn't exist
     const tempDir = path.join(process.cwd(), 'temp-audio');
     await fs.mkdir(tempDir, { recursive: true });
@@ -51,12 +46,24 @@ async function downloadAudio(audioUrl) {
     const filename = `recording_${timestamp}.wav`;
     const filePath = path.join(tempDir, filename);
 
-    // Download and save file
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    await fs.writeFile(filePath, buffer);
+    // Download with curl using spawn (more reliable)
+    await new Promise((resolve, reject) => {
+      const curl = spawn('curl', ['-s', '-L', audioUrl, '-o', filePath]);
+      
+      curl.on('error', (err) => reject(err));
+      curl.on('close', (code) => {
+        if (code === 0) resolve();
+        else reject(new Error(`curl exited with code ${code}`));
+      });
+    });
 
-    log(`✅ Audio downloaded to: ${filePath} (${buffer.length} bytes)`);
+    // Verify file was downloaded
+    const stats = await fs.stat(filePath);
+    log(`✅ Audio downloaded to: ${filePath} (${stats.size} bytes)`);
+
+    if (stats.size < 1000) {
+      throw new Error(`Downloaded file too small (${stats.size} bytes) - likely not valid audio`);
+    }
 
     return {
       success: true,
@@ -283,7 +290,7 @@ async function performPhase1DataExtraction(transcription) {
     log(`📋 Phase 1: Extracting base data from call...`);
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-5-nano',
+      model: 'gpt-4.1',
       messages: [
         {
           role: 'system',
@@ -321,7 +328,11 @@ ESTRAI le seguenti informazioni dalla chiamata:
       max_completion_tokens: 1000
     });
 
-    const response = completion.choices[0].message.content;
+    let response = completion.choices[0].message.content;
+    // Pulisci markdown se presente
+    if (response.includes('```json')) {
+      response = response.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    }
     const data = JSON.parse(response);
 
     log(`✅ Phase 1 completed - call type: ${data.call_type}`);
@@ -422,7 +433,7 @@ async function performPhase2AvatarClassification(extractedData, transcription) {
 🔔 **Affitti brevi/immobiliare**: Se serve sistema prenotazione immobili tipo airbnb/booking o gestore canali → FUORI TARGET`;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-5',
+      model: 'gpt-4.1',
       messages: [
         {
           role: 'system',
@@ -460,7 +471,11 @@ ${transcription.substring(0, 2000)}...`
       max_completion_tokens: 800
     });
 
-    const response = completion.choices[0].message.content;
+    let response = completion.choices[0].message.content;
+    // Pulisci markdown se presente
+    if (response.includes('```json')) {
+      response = response.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    }
     const classification = JSON.parse(response);
 
     log(`✅ Phase 2 completed - Avatar: ${classification.avatar_numero || 'Fuori Target'}`);
@@ -498,7 +513,7 @@ async function performPhase3BANTAndNotes(extractedData, avatarClassification, tr
 **Tempistica**: Non chiedere direttamente "vuoi implementarlo oggi?". Analizzare la conversazione: se ha necessità urgente, ha già provato soluzioni senza successo → ha giusta tempistica. Se parla di "dopo l'estate", "a fine anno", "l'anno prossimo" → NON ha tempistica.`;
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-5',
+      model: 'gpt-4.1',
       messages: [
         {
           role: 'system',
@@ -552,7 +567,11 @@ ${transcription}`
       max_completion_tokens: 1200
     });
 
-    const response = completion.choices[0].message.content;
+    let response = completion.choices[0].message.content;
+    // Pulisci markdown se presente
+    if (response.includes('```json')) {
+      response = response.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+    }
     const analysis = JSON.parse(response);
 
     log(`✅ Phase 3 completed - BANT analysis done`);
@@ -773,9 +792,9 @@ export async function processRecordingTranscription(audioUrl) {
     };
 
   } finally {
-    // Always clean up temp file
+    // DEBUG: Non cancellare per ispezionare
     if (tempFilePath) {
-      await cleanupAudioFile(tempFilePath);
+      log(`🔍 DEBUG: File salvato in: ${tempFilePath}`);
     }
   }
 }
@@ -788,6 +807,22 @@ export async function processRecordingTranscription(audioUrl) {
  */
 export function formatTranscriptionForGHL(transcriptionResult, recordingUrl) {
   const { transcription, analysis, processedAt } = transcriptionResult;
+
+  // Check if this is incomprehensible audio
+  if (analysis.call_type === 'incomprehensible_audio') {
+    return `🎧 REGISTRAZIONE CHIAMATA:
+${recordingUrl}
+
+═══════════════════════════════════════
+
+❓ AUDIO NON COMPRENSIBILE - CLOUDTALK
+
+${analysis.reason}
+
+═══════════════ TRASCRIZIONE ═══════════════
+
+${transcription}`;
+  }
 
   // Check if this is voicemail
   if (analysis.call_type === 'segreteria') {

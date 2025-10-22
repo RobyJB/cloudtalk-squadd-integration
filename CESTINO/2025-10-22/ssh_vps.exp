@@ -1,0 +1,20 @@
+#!/usr/bin/expect -f
+
+set timeout 30
+set host "148.230.107.148"
+set user "root"
+set password "Boferusso99@?"
+set command [lindex $argv 0]
+
+spawn ssh $user@$host $command
+expect {
+    "password:" {
+        send "$password\r"
+        exp_continue
+    }
+    "yes/no" {
+        send "yes\r"
+        exp_continue
+    }
+    eof
+}

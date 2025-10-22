@@ -276,11 +276,13 @@ async function getContactByPhone(phone, correlationId) {
             const contactDetails = await getContactDetails(contact.id);
             const fullContact = contactDetails.responseData.Contact;
             const contactAttributes = contactDetails.responseData.ContactAttribute || [];
+            const contactTags = contactDetails.responseData.ContactsTag || [];
             
             return {
               id: fullContact.id,
               name: fullContact.name,
               contact_attributes: contactAttributes,
+              ContactsTag: contactTags,  // Include tags for optimization check
               ...fullContact
             };
           }
@@ -449,6 +451,7 @@ async function getCampaignIdByName(campaignName, correlationId) {
 /**
  * Gestisce i tag delle campagne basandosi sul numero di tentativi
  * Sostituisce la logica di spostamento tra campagne usando i tag CloudTalk
+ * OTTIMIZZATO: Evita ri-tagging quando i tag sono già corretti
  */
 async function manageCampaignTags(contactId, currentAttempts, contactData, correlationId) {
   try {
@@ -457,6 +460,22 @@ async function manageCampaignTags(contactId, currentAttempts, contactData, corre
       contact_id: contactId,
       current_attempts: currentAttempts,
       contact_name: contactData?.name
+    });
+    
+    // Ottieni i tag esistenti del contatto (da ContactsTag nell'API response)
+    const existingTags = [];
+    if (contactData.ContactsTag && Array.isArray(contactData.ContactsTag)) {
+      contactData.ContactsTag.forEach(tagObj => {
+        if (tagObj.name) existingTags.push(tagObj.name);
+      });
+    } else if (contactData.tags && Array.isArray(contactData.tags)) {
+      existingTags.push(...contactData.tags);
+    }
+    
+    logAutomation('info', correlationId, {
+      action: 'existing_tags_check',
+      contact_id: contactId,
+      existing_tags: existingTags
     });
     
     // Determina quali tag assegnare in base ai tentativi
@@ -480,25 +499,59 @@ async function manageCampaignTags(contactId, currentAttempts, contactData, corre
       addedTags = ['mancata_risposta'];
     }
     
+    // ⚡ OTTIMIZZAZIONE: Controlla se i tag sono già corretti
+    const hasTargetTag = targetTags.some(tag => existingTags.includes(tag));
+    const hasTagsToRemove = removedTags.some(tag => existingTags.includes(tag));
+    
+    // Se ha già il tag corretto E non ha tag da rimuovere, SKIP l'aggiornamento
+    if (hasTargetTag && !hasTagsToRemove) {
+      logAutomation('info', correlationId, {
+        action: 'campaign_tags_already_correct',
+        contact_id: contactId,
+        attempts: currentAttempts,
+        existing_tags: existingTags,
+        target_tags: targetTags,
+        reason: 'Contact already has correct tag and no tags to remove'
+      });
+      
+      return {
+        success: true,
+        updated: false,
+        reason: 'Tags already correct - no update needed',
+        existingTags: existingTags,
+        targetTags: targetTags
+      };
+    }
+    
     if (targetTags.length > 0) {
       logAutomation('info', correlationId, {
         action: 'campaign_tags_update_required',
         contact_id: contactId,
         attempts: currentAttempts,
+        existing_tags: existingTags,
         removed_tags: removedTags,
         added_tags: addedTags,
-        final_tags: targetTags
+        final_tags: targetTags,
+        reason: hasTagsToRemove ? 'Has tags to remove' : 'Missing target tag'
       });
       
+      // Preserva altri tag importanti che non sono tag di campagna
+      const campaignTagsList = ['nuovi_lead', 'lead_recenti', 'mancata_risposta', 'Follow Up'];
+      const otherTags = existingTags.filter(tag => !campaignTagsList.includes(tag));
+      const finalTagsToSet = [...new Set([...otherTags, ...targetTags])]; // Deduplica
+      
       // Aggiorna i tag del contatto
-      const updateResult = await updateContactTags(contactId, targetTags, contactData, correlationId);
+      const updateResult = await updateContactTags(contactId, finalTagsToSet, contactData, correlationId);
       
       if (updateResult.success) {
         logAutomation('info', correlationId, {
           action: 'campaign_tags_updated_successfully',
           contact_id: contactId,
           attempts: currentAttempts,
-          updated_tags: targetTags
+          previous_tags: existingTags,
+          updated_tags: finalTagsToSet,
+          removed: removedTags,
+          added: addedTags
         });
         
         return {
@@ -506,7 +559,8 @@ async function manageCampaignTags(contactId, currentAttempts, contactData, corre
           updated: true,
           removedTags,
           addedTags,
-          finalTags: targetTags
+          finalTags: finalTagsToSet,
+          previousTags: existingTags
         };
       } else {
         logAutomation('error', correlationId, {

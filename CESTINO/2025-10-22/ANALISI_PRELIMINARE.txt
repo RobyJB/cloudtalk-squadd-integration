@@ -1,0 +1,59 @@
+=== ANALISI PULIZIA CODEBASE - 2025-10-22 ===
+
+CATEGORIE DI FILE CANDIDATI ALLO SPOSTAMENTO:
+
+A. FILE TEST (35 su 36 - uno è usato in package.json):
+   - MANTIENI: test-google-sheets-integration.js (referenziato in package.json script)
+   - SPOSTA: tutti gli altri test-*.js (35 file)
+
+B. FILE AUDIO:
+   - Root directory: 5 file WAV/M4A (test-curl2.wav, test-download.wav, test-working-backup.wav, registrazione, etc.)
+   - temp-audio/: 3 registrazioni WAV temporanee
+
+C. DOCUMENTAZIONE TEMPORANEA (11 MD files):
+   - BUG-FIX-CALL-ID-UNDEFINED.md
+   - BUG-FIX-TAG-MISMATCH-REPORT.md
+   - FIX-EXACT-TAG-PASSTHROUGH.md
+   - FIX-SUMMARY-CALL-ID-UNDEFINED.md
+   - FIXES_SUMMARY.md
+   - FLOW-DIAGRAM-CALL-ID-FIX.md
+   - GHL-OPPORTUNITY-WON-FIX.md
+   - GHL-WON-STATUS-FIX-SUMMARY.md
+   - INTEGRATION_TEST_REPORT.md
+   - LEAD_LOGIC_FIX_SUMMARY.md
+   - WEBHOOK_DUPLICATION_ANALYSIS_AND_FIXES.md
+
+D. SCRIPT STANDALONE (richiedono verifica approfondita):
+   - monitor-roberto-realtime.js
+   - import-contatti-serena.js
+   - enhanced-lead-to-call-integration.js
+   - bulk-ghl-to-cloudtalk-import.js
+   - bulk-import-serena.js
+   - smart-agent-detector.js
+
+E. FILE BACKUP:
+   - src/services/transcription-service.js.backup
+
+F. FILE GENERATI:
+   - cloudtalk-webhook-server.js (generato da start-cloudtalk-webhooks.sh)
+
+G. LOG VECCHI:
+   - Da verificare con date -mtime +30
+
+H. ALTRI FILE TEMPORANEI:
+   - Contatti 0-2.csv (potenziale file di import)
+   - ssh_vps.exp (script expect per SSH)
+
+FILE DA MANTENERE:
+- src/* (tranne backup)
+- package.json, package-lock.json
+- .env, .env.example
+- .gitignore
+- node_modules/
+- deploy-production.sh
+- start-cloudtalk-webhooks.sh
+- swagger.json
+- google-service-account.json
+- README.md
+- DEPLOYMENT_GUIDE.md (se esiste)
+- test-google-sheets-integration.js (usato in npm script)

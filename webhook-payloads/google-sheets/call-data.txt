@@ -112,3 +112,30 @@ PAYLOAD:
 
 ==============================
 
+
+=== WEBHOOK RECEIVED: 2025-10-22T17:41:56.902Z ===
+Provider: google-sheets
+Webhook Type: call-data
+Headers: {
+  "host": "localhost:3000",
+  "user-agent": "curl/8.16.0",
+  "accept": "*/*",
+  "content-type": "application/json",
+  "content-length": "206"
+}
+User-Agent: curl/8.16.0
+Content-Type: application/json
+IP: N/A
+
+PAYLOAD:
+{
+  "call_uuid": "test-manual-1761154916",
+  "call_id": "1761154916",
+  "agent_id": 493933,
+  "agent_first_name": "Test",
+  "agent_last_name": "Manuale",
+  "external_number": "+393513416607"
+}
+
+==============================
+

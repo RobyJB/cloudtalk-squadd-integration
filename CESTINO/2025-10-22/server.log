@@ -1,0 +1,129 @@
+
+> api-middleware@1.0.0 dev
+> node --watch src/index.js
+
+[dotenv@17.2.2] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[dotenv@17.2.2] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+Listening on http://localhost:3000
+📀 Recording manager initialized successfully
+🔍 Searching GHL Contact by phone: +393513416607 (cleaned: +393513416607)
+API Key presente: true
+Location ID: DfxGoORmPoL5Z1OcfYJM
+Status: 200
+Rate limit remaining: 99
+✅ Ricerca completata!
+- Totale contatti trovati: 1
+- Contatti ricevuti: 1
+
+📊 CONTATTI TROVATI:
+
+1. Rubertu Bundici
+   📞 Phone: +393513416607
+   📧 Email: N/A
+   🆔 Contact ID: RwBFEsmqo8jZyGrvIIhO
+   ✅ MATCH ESATTO! Contact ID: RwBFEsmqo8jZyGrvIIhO
+Restarting 'src/index.js'
+[dotenv@17.2.2] injecting env (0) from .env -- tip: ⚙️  load multiple .env files with { path: ['.env.local', '.env'] }
+[dotenv@17.2.2] injecting env (0) from .env -- tip: ⚙️  override existing env vars with { override: true }
+Listening on http://localhost:3000
+📀 Recording manager initialized successfully
+Restarting 'src/index.js'
+[dotenv@17.2.2] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[dotenv@17.2.2] injecting env (0) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+Listening on http://localhost:3000
+📀 Recording manager initialized successfully
+🔍 Searching GHL Contact by phone: +393513416607 (cleaned: +393513416607)
+API Key presente: true
+Location ID: DfxGoORmPoL5Z1OcfYJM
+Status: 200
+Rate limit remaining: 99
+✅ Ricerca completata!
+- Totale contatti trovati: 1
+- Contatti ricevuti: 1
+
+📊 CONTATTI TROVATI:
+
+1. Rubertu Bundici
+   📞 Phone: +393513416607
+   📧 Email: N/A
+   🆔 Contact ID: RwBFEsmqo8jZyGrvIIhO
+   ✅ MATCH ESATTO! Contact ID: RwBFEsmqo8jZyGrvIIhO
+🔍 Searching GHL Contact by phone: +393513416607 (cleaned: +393513416607)
+API Key presente: true
+Location ID: DfxGoORmPoL5Z1OcfYJM
+Status: 200
+Rate limit remaining: 98
+✅ Ricerca completata!
+- Totale contatti trovati: 1
+- Contatti ricevuti: 1
+
+📊 CONTATTI TROVATI:
+
+1. Rubertu Bundici
+   📞 Phone: +393513416607
+   📧 Email: N/A
+   🆔 Contact ID: RwBFEsmqo8jZyGrvIIhO
+   ✅ MATCH ESATTO! Contact ID: RwBFEsmqo8jZyGrvIIhO
+🔍 Searching GHL Contact by phone: +393513416607 (cleaned: +393513416607)
+API Key presente: true
+Location ID: DfxGoORmPoL5Z1OcfYJM
+Status: 200
+Rate limit remaining: 93
+✅ Ricerca completata!
+- Totale contatti trovati: 1
+- Contatti ricevuti: 1
+
+📊 CONTATTI TROVATI:
+
+1. Rubertu Bundici
+   📞 Phone: +393513416607
+   📧 Email: N/A
+   🆔 Contact ID: RwBFEsmqo8jZyGrvIIhO
+   ✅ MATCH ESATTO! Contact ID: RwBFEsmqo8jZyGrvIIhO
+🔍 Searching GHL Contact by phone: +393513416607 (cleaned: +393513416607)
+API Key presente: true
+Location ID: DfxGoORmPoL5Z1OcfYJM
+Status: 200
+Rate limit remaining: 88
+✅ Ricerca completata!
+- Totale contatti trovati: 1
+- Contatti ricevuti: 1
+
+📊 CONTATTI TROVATI:
+
+1. Rubertu Bundici
+   📞 Phone: +393513416607
+   📧 Email: N/A
+   🆔 Contact ID: RwBFEsmqo8jZyGrvIIhO
+   ✅ MATCH ESATTO! Contact ID: RwBFEsmqo8jZyGrvIIhO
+🔍 Searching GHL Contact by phone: +393513416607 (cleaned: +393513416607)
+API Key presente: true
+Location ID: DfxGoORmPoL5Z1OcfYJM
+Status: 200
+Rate limit remaining: 98
+✅ Ricerca completata!
+- Totale contatti trovati: 1
+- Contatti ricevuti: 1
+
+📊 CONTATTI TROVATI:
+
+1. Rubertu Bundici
+   📞 Phone: +393513416607
+   📧 Email: N/A
+   🆔 Contact ID: RwBFEsmqo8jZyGrvIIhO
+   ✅ MATCH ESATTO! Contact ID: RwBFEsmqo8jZyGrvIIhO
+Restarting 'src/index.js'
+[dotenv@17.2.2] injecting env (0) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[dotenv@17.2.2] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+Listening on http://localhost:3000
+📀 Recording manager initialized successfully
+Restarting 'src/index.js'
+[dotenv@17.2.2] injecting env (0) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[dotenv@17.2.2] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+Listening on http://localhost:3000
+📀 Recording manager initialized successfully
+Restarting 'src/index.js'
+[dotenv@17.2.2] injecting env (0) from .env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+[dotenv@17.2.2] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+Listening on http://localhost:3000
+📀 Recording manager initialized successfully

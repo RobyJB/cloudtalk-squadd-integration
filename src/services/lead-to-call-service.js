@@ -607,9 +607,134 @@ class LeadToCallService {
   async getRecentProcesses(limit = 20) {
     return await leadTrackingLogger.getRecentProcesses(limit);
   }
+
+  /**
+   * Crea SOLO contatto in CloudTalk con tag "nuovo_lead" - SENZA chiamata
+   * @param {Object} leadData Dati del lead da GHL
+   * @returns {Promise<Object>} Risultato creazione contatto
+   */
+  async createContactOnly(leadData) {
+    try {
+      await this.initialize();
+
+      log(`👤 Creazione contatto CloudTalk SENZA chiamata automatica`);
+
+      // Validazione telefono
+      if (!leadData.phone) {
+        return {
+          success: false,
+          error: 'MISSING_PHONE',
+          message: 'Numero di telefono mancante nel payload'
+        };
+      }
+
+      // Costruisci dati contatto con tag "nuovo_lead"
+      const fullName = `${leadData.first_name || ''} ${leadData.last_name || ''}`.trim();
+
+      const contactData = {
+        name: fullName || leadData.full_name || leadData.name || 'Lead Senza Nome',
+        company: leadData.company || 'GoHighLevel Lead',
+        ContactNumber: [
+          { public_number: leadData.phone }
+        ],
+        ContactEmail: [
+          { email: leadData.email || '' }
+        ],
+        ContactsTag: [
+          { name: 'nuovo_lead' }  // TAG RICHIESTO
+        ]
+      };
+
+      // Aggiungi custom fields se presenti
+      const customFields = [];
+
+      // Squadd ID
+      if (leadData.contact_id) {
+        customFields.push({
+          attribute_id: "10133",
+          value: leadData.contact_id
+        });
+      }
+
+      // Chiamate totali
+      if (leadData.customData?.totaleChiamate) {
+        customFields.push({
+          attribute_id: "10135",
+          value: leadData.customData.totaleChiamate
+        });
+      }
+
+      if (customFields.length > 0) {
+        contactData.ContactAttribute = customFields;
+      }
+
+      log(`📝 Creando contatto: ${contactData.name} con tag "nuovo_lead"`);
+      log(`📞 Telefono: ${leadData.phone}`);
+
+      // Crea contatto su CloudTalk
+      const response = await makeCloudTalkRequest('/contacts/add.json', {
+        method: 'PUT',
+        body: JSON.stringify(contactData)
+      });
+
+      // Estrai contact ID dalla response
+      let contactId = null;
+
+      if (response?.responseData?.data?.id) {
+        contactId = response.responseData.data.id;
+      } else if (response?.data?.responseData?.data?.id) {
+        contactId = response.data.responseData.data.id;
+      } else if (response?.data?.id) {
+        contactId = response.data.id;
+      }
+
+      if (!contactId) {
+        log(`⚠️ Contact ID non trovato nella response`);
+        return {
+          success: false,
+          error: 'CONTACT_ID_NOT_FOUND',
+          message: 'Contatto creato ma ID non recuperato dalla response'
+        };
+      }
+
+      log(`✅ Contatto creato con successo: ID ${contactId}, Tag: "nuovo_lead"`);
+
+      return {
+        success: true,
+        contactId: contactId,
+        contactName: contactData.name,
+        phoneNumber: leadData.phone,
+        tag: 'nuovo_lead',
+        customFieldsMapped: customFields.length
+      };
+
+    } catch (error) {
+      logError(`❌ Errore creazione contatto: ${error.message}`);
+
+      // Check se è un contatto duplicato
+      if (error.message?.includes('409') || error.message?.includes('already exists')) {
+        return {
+          success: false,
+          error: 'CONTACT_ALREADY_EXISTS',
+          message: 'Contatto già esistente su CloudTalk'
+        };
+      }
+
+      return {
+        success: false,
+        error: 'CONTACT_CREATION_FAILED',
+        message: error.message
+      };
+    }
+  }
 }
 
 // Istanza singleton
 const leadToCallService = new LeadToCallService();
+
+// Export funzione standalone per creazione contatto senza chiamata
+export async function createContactOnly(leadData) {
+  return await leadToCallService.createContactOnly(leadData);
+}
 
 export default leadToCallService;

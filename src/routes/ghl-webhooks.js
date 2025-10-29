@@ -35,14 +35,19 @@ async function handleGHLWebhook(req, res, webhookType) {
 }
 
 /**
- * New contact webhook from GHL - PROCESSO AUTOMATICO LEAD-TO-CALL
+ * New contact webhook from GHL - SOLO CREAZIONE CONTATTO (NO CHIAMATA)
  * POST /api/ghl-webhooks/new-contact
+ *
+ * COMPORTAMENTO:
+ * - Crea contatto su CloudTalk
+ * - Applica tag "nuovo_lead"
+ * - NON fa partire chiamate automatiche
  */
 router.post('/new-contact', async (req, res) => {
   const timestamp = new Date().toISOString();
   const webhookType = 'new-contact';
-  
-  log(`🎯 [${timestamp}] GHL Webhook: ${webhookType.toUpperCase()} - LEAD-TO-CALL AUTOMATICO`);
+
+  log(`👤 [${timestamp}] GHL Webhook: ${webhookType.toUpperCase()} - SOLO CREAZIONE CONTATTO`);
   log(`📋 Payload: ${JSON.stringify(req.body, null, 2)}`);
 
   // Salva webhook payload
@@ -52,85 +57,59 @@ router.post('/new-contact', async (req, res) => {
   }
 
   try {
-    // Processa il lead per creazione contatto e chiamata automatica con logica enhanced
-    log(`🚀 Avvio processo ENHANCED Lead-to-Call automatico...`);
+    // Importa servizio per creazione contatto
+    const { createContactOnly } = await import('../services/lead-to-call-service.js');
 
-    const processResult = await leadToCallService.processLeadToCallEnhanced(req.body);
+    log(`🚀 Creazione contatto CloudTalk con tag "nuovo_lead"...`);
 
-    if (processResult.success) {
-      // Successo completo
+    const createResult = await createContactOnly(req.body);
+
+    if (createResult.success) {
+      // Contatto creato con successo
       res.json({
         success: true,
-        message: 'Lead processato con successo - Chiamata iniziata',
-        processId: processResult.processId,
-        selectedAgent: {
-          id: processResult.selectedAgent.id,
-          name: processResult.selectedAgent.name,
-          extension: processResult.selectedAgent.extension
+        message: 'Contatto creato su CloudTalk con tag "nuovo_lead"',
+        contact: {
+          id: createResult.contactId,
+          name: createResult.contactName,
+          phone: createResult.phoneNumber
         },
-        callInitiated: true,
+        tag: 'nuovo_lead',
+        callInitiated: false,
         timestamp: timestamp,
-        payloadSaved: saveResult.success,
-        enhanced: {
-          fallbackUsed: processResult.enhancedInfo.fallbackUsed,
-          finalAgentUsedFallback: processResult.enhancedInfo.finalAgentUsedFallback,
-          totalAgentsAttempted: processResult.enhancedInfo.totalAgentsAttempted,
-          busyAgentsSkipped: processResult.enhancedInfo.busyAgentsSkipped.length,
-          roundRobinInfo: processResult.steps.agentDistribution?.fallbackInfo
-        },
-        steps: {
-          contactCreated: processResult.steps.contactCreation?.success || false,
-          agentSelected: processResult.steps.agentDistribution?.success || false,
-          callStarted: processResult.steps.callInitiation?.success || false,
-          fallbackAttempts: processResult.steps.fallbackAttempts.length
-        }
+        payloadSaved: saveResult.success
       });
 
-      const finalMessage = processResult.enhancedInfo.finalAgentUsedFallback
-        ? `✅ Lead-to-Call completato con FALLBACK: ${processResult.selectedAgent.name} chiamerà ${req.body.phone} (${processResult.enhancedInfo.totalAgentsAttempted} agenti tentati)`
-        : `✅ Lead-to-Call completato: ${processResult.selectedAgent.name} chiamerà ${req.body.phone}`;
-
-      log(finalMessage);
+      log(`✅ Contatto creato: ${createResult.contactName} (${createResult.phoneNumber}) con tag "nuovo_lead"`);
 
     } else {
-      // Errore nel processo
-      const errorStatus = getHttpStatusFromError(processResult.finalStatus);
+      // Errore nella creazione
+      let errorStatus = 500;
+
+      if (createResult.error === 'CONTACT_ALREADY_EXISTS') {
+        errorStatus = 409; // Conflict
+      } else if (createResult.error === 'MISSING_PHONE') {
+        errorStatus = 400; // Bad Request
+      }
 
       res.status(errorStatus).json({
         success: false,
-        message: `Lead-to-Call fallito: ${processResult.error}`,
-        processId: processResult.processId,
-        error: processResult.finalStatus,
-        errorDetails: processResult.error,
+        message: `Errore creazione contatto: ${createResult.message || createResult.error}`,
+        error: createResult.error,
+        phoneNumber: req.body.phone,
         timestamp: timestamp,
-        payloadSaved: saveResult.success,
-        enhanced: {
-          fallbackUsed: processResult.enhancedInfo?.fallbackUsed || false,
-          totalAgentsAttempted: processResult.enhancedInfo?.totalAgentsAttempted || 0,
-          busyAgentsSkipped: processResult.enhancedInfo?.busyAgentsSkipped || [],
-          roundRobinInfo: processResult.steps?.agentDistribution?.fallbackInfo
-        },
-        steps: {
-          contactCreated: processResult.steps?.contactCreation?.success || false,
-          agentSelected: processResult.steps?.agentDistribution?.success || false,
-          callStarted: processResult.steps?.callInitiation?.success || false,
-          fallbackAttempts: processResult.steps?.fallbackAttempts?.length || 0
-        },
-        availableAgents: processResult.steps?.agentDistribution?.availableAgents || 0
+        payloadSaved: saveResult.success
       });
 
-      logError(`❌ Enhanced Lead-to-Call fallito: ${processResult.error}`);
-      if (processResult.enhancedInfo?.busyAgentsSkipped?.length > 0) {
-        logError(`🔴 Agenti occupati saltati: ${processResult.enhancedInfo.busyAgentsSkipped.map(a => a.agentName).join(', ')}`);
-      }
+      logError(`❌ Errore creazione contatto: ${createResult.error}`);
     }
     
   } catch (error) {
-    logError('Errore processo Lead-to-Call:', error);
-    
+    logError('Errore processo creazione contatto:', error);
+
     res.status(500).json({
       success: false,
-      message: 'Errore interno nel processo Lead-to-Call',
+      message: 'Errore interno nella creazione contatto',
       error: error.message,
       timestamp: timestamp,
       payloadSaved: saveResult.success
@@ -393,7 +372,7 @@ router.get('/health', async (req, res) => {
       },
       timestamp: new Date().toISOString(),
       endpoints: {
-        '/new-contact': 'ACTIVE - Lead-to-Call automatico',
+        '/new-contact': 'ACTIVE - Creazione contatto con tag "nuovo_lead" (NO chiamata automatica)',
         '/new-tag': 'placeholder',
         '/new-note': 'placeholder',
         '/pipeline-stage-changed': 'placeholder',

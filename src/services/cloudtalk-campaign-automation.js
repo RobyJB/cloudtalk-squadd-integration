@@ -18,14 +18,14 @@ import path from 'path';
  * 1. Riceve webhook call-ended
  * 2. Cerca contatto per numero di telefono o contact_id
  * 3. Legge e incrementa campo "# di tentativi di chiamata"
- * 4. Controlla soglie (3 → Lead Recenti, 10 → Mancata Risposta)
- * 5. Sposta tra campagne se necessario
+ * 4. Controlla soglie (4 → Lead Recenti, 10 → Mancata Risposta)
+ * 5. Applica tag campagna automaticamente basato su tentativi
  */
 
 // Configurazione soglie per cambio tag
 const THRESHOLDS = {
-  FOLLOW_UP: 3,         // A 3 tentativi: cambia a "Follow Up"  
-  MANCATA_RISPOSTA: 10  // A 10 tentativi: cambia a "Mancata Risposta"
+  LEAD_RECENTI: 4,      // A 4 tentativi: cambia a "lead_recenti"
+  MANCATA_RISPOSTA: 10  // A 10 tentativi: cambia a "mancata_risposta"
 };
 
 // Nomi tag campagne (configurabili via ENV)
@@ -483,12 +483,12 @@ async function manageCampaignTags(contactId, currentAttempts, contactData, corre
     let removedTags = [];
     let addedTags = [];
     
-    if (currentAttempts >= 1 && currentAttempts <= 2) {
-      // 1-2 tentativi: Tag "nuovi_lead" (exactly as specified)
+    if (currentAttempts >= 1 && currentAttempts <= 3) {
+      // 1-3 tentativi: Tag "nuovi_lead"
       targetTags = ['nuovi_lead'];
       addedTags = ['nuovi_lead'];
-    } else if (currentAttempts >= 3 && currentAttempts <= 9) {
-      // 3-9 tentativi: Tag "lead_recenti" (rimuovi "nuovi_lead")
+    } else if (currentAttempts >= 4 && currentAttempts <= 9) {
+      // 4-9 tentativi: Tag "lead_recenti" (rimuovi "nuovi_lead")
       targetTags = ['lead_recenti'];
       removedTags = ['nuovi_lead'];
       addedTags = ['lead_recenti'];
